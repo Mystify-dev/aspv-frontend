@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASPV - Calendario de Siniestros</title>
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Librería FullCalendar para magia visual -->
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+
+    <style>
+        /* Ajustes para que el calendario se pinte bien en modo oscuro/claro */
+        #calendar {
+            background: var(--panel-bg);
+            padding: 20px;
+            border-radius: 12px;
+            color: var(--text-color);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .fc-theme-standard td, .fc-theme-standard th, .fc-theme-standard .fc-scrollgrid {
+            border-color: var(--border-color) !important;
+        }
+        .fc-toolbar-title { color: var(--text-color) !important; }
+        .fc-button-primary {
+            background-color: var(--primary-color) !important;
+            border: none !important;
+            text-transform: capitalize;
+        }
+        .fc-event { cursor: pointer; border: none; padding: 2px 5px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+<!-- Menú Lateral -->
+<aside class="sidebar">
+    <img src="imagenes/LogoASPV.jpg" alt="Logo ASPV" style="width: 110px; margin-bottom: 15px; margin-top: 5px; border-radius: 12px;">
+    <p style="color: var(--text-muted); font-size: 0.9em; margin-bottom: 40px;">GESTIÓN DE SINIESTROS</p>
+
+    <nav style="display: flex; flex-direction: column; gap: 15px;" id="navMenu">
+        <strong>Menú Principal</strong>
+
+        <!-- Enlaces ocultos por defecto -->
+        <a href="admin.html" id="btnAdmin" style="display: none; color: var(--text-color); text-decoration: none;">⚙️ Gerencia y Usuarios</a>
+        <a href="resumen.html" id="btnAnalista" style="display: none; color: var(--text-color); text-decoration: none;">📊 Panel de Análisis</a>
+        <a href="index.html" id="btnAjustador" style="display: none; color: var(--text-color); text-decoration: none;">📁 Mis Expedientes</a>
+        <a href="calendario.html" id="btnCalendario" style="display: none; color: var(--text-color); text-decoration: none;">📅 Calendario</a>
+
+        <!-- Script inteligente que muestra solo lo permitido según el rol -->
+        <script>
+            const rolActual = localStorage.getItem('aspv_rol');
+
+            if (rolActual === 'Admin') {
+                document.getElementById('btnAdmin').style.display = 'block';
+                document.getElementById('btnAnalista').style.display = 'block';
+                document.getElementById('btnCalendario').style.display = 'block';
+            } else if (rolActual === 'Analista') {
+                document.getElementById('btnAnalista').style.display = 'block';
+                document.getElementById('btnCalendario').style.display = 'block';
+            } else if (rolActual === 'Ajustador') {
+                document.getElementById('btnAjustador').style.display = 'block';
+                document.getElementById('btnCalendario').style.display = 'block';
+            }
+
+            // Resalta en azul la página actual automáticamente
+            const urlActual = window.location.pathname.split('/').pop() || 'index.html';
+            document.querySelectorAll('#navMenu a').forEach(enlace => {
+                if (enlace.getAttribute('href') === urlActual) {
+                    enlace.style.color = 'var(--primary-color)';
+                    enlace.style.fontWeight = 'bold';
+                }
+            });
+        </script>
+
+        <!-- Controles de Accesibilidad -->
+        <div style="margin-top: 40px;">
+            <p style="font-size: 0.8em; color: var(--text-muted); margin-bottom: 8px;">Apariencia:</p>
+            <div style="display: flex; gap: 5px;">
+                <button onclick="cambiarTema('light')" style="cursor: pointer; padding: 5px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-color);">☀️</button>
+                <button onclick="cambiarTema('dark')" style="cursor: pointer; padding: 5px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-color);">🌙</button>
+                <button onclick="cambiarTexto('normal')" style="cursor: pointer; padding: 5px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-color); font-weight: bold;">A</button>
+                <button onclick="cambiarTexto('grande')" style="cursor: pointer; padding: 5px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-color); font-weight: bold;">A+</button>
+            </div>
+        </div>
+    </nav>
+</aside>
+
+<!-- Contenido Principal -->
+<main class="main-content">
+    <header class="topbar">
+        <div style="flex: 1;"></div> <!-- Espaciador invisible -->
+        <div class="user-profile" style="display: flex; align-items: center; gap: 15px;">
+            <strong id="nombreUsuarioUI">Hola, Cargando...</strong>
+            <button onclick="cerrarSesion()" style="background-color: #e74c3c; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s;">Salir 🚪</button>
+        </div>
+    </header>
+
+    <div class="dashboard">
+        <h1 style="margin-top: 0;">Calendario Operativo</h1>
+        <p style="color: var(--text-muted); margin-bottom: 25px;">Visualiza los siniestros ocurridos por día.</p>
+
+        <!-- Aquí es donde la librería dibujará el calendario mágicamente -->
+        <div id="calendar"></div>
+    </div>
+</main>
+
+<script src="calendario.js"></script>
+
+</body>
+</html>

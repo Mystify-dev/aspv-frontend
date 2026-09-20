@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASPV - Panel de Administración</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Menú Lateral -->
+<aside class="sidebar">
+    <img src="imagenes/LogoASPV.jpg" alt="Logo ASPV" style="width: 110px; margin-bottom: 15px; margin-top: 5px; border-radius: 12px;">
+    <p style="color: var(--text-muted); font-size: 0.9em; margin-bottom: 40px;">GESTIÓN DE SINIESTROS</p>
+
+    <!-- Eliminamos el height:100% y dejamos que el contenido dicte el espacio -->
+    <nav style="display: flex; flex-direction: column; gap: 15px;" id="navMenu">
+        <strong>Menú Principal</strong>
+
+        <!-- Enlaces ocultos por defecto -->
+        <a href="admin.html" id="btnAdmin" style="display: none; color: var(--text-color); text-decoration: none;">⚙️ Gerencia y Usuarios</a>
+        <a href="resumen.html" id="btnAnalista" style="display: none; color: var(--text-color); text-decoration: none;">📊 Panel de Análisis</a>
+        <a href="index.html" id="btnAjustador" style="display: none; color: var(--text-color); text-decoration: none;">📁 Mis Expedientes</a>
+        <a href="calendario.html" id="btnCalendario" style="display: none; color: var(--text-color); text-decoration: none;">📅 Calendario</a>
+
+        <!-- Script inteligente que muestra solo lo permitido según el rol -->
+        <script>
+            const rolActual = localStorage.getItem('aspv_rol');
+
+            if (rolActual === 'Admin') {
+                document.getElementById('btnAdmin').style.display = 'block';
+                document.getElementById('btnAnalista').style.display = 'block';
+                document.getElementById('btnCalendario').style.display = 'block';
+            } else if (rolActual === 'Analista') {
+                document.getElementById('btnAnalista').style.display = 'block';
+                document.getElementById('btnCalendario').style.display = 'block';
+            } else if (rolActual === 'Ajustador') {
+                document.getElementById('btnAjustador').style.display = 'block';
+                document.getElementById('btnCalendario').style.display = 'block';
+            }
+
+            // Resalta en azul la página actual automáticamente
+            const urlActual = window.location.pathname.split('/').pop() || 'index.html';
+            document.querySelectorAll('#navMenu a').forEach(enlace => {
+                if (enlace.getAttribute('href') === urlActual) {
+                    enlace.style.color = 'var(--primary-color)';
+                    enlace.style.fontWeight = 'bold';
+                }
+            });
+        </script>
+
+        <!-- Controles de Accesibilidad -->
+        <div style="margin-top: 40px;">
+            <p style="font-size: 0.8em; color: var(--text-muted); margin-bottom: 8px;">Apariencia:</p>
+            <div style="display: flex; gap: 5px;">
+                <button onclick="cambiarTema('light')" style="cursor: pointer; padding: 5px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-color);">☀️</button>
+                <button onclick="cambiarTema('dark')" style="cursor: pointer; padding: 5px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-color);">🌙</button>
+                <button onclick="cambiarTexto('normal')" style="cursor: pointer; padding: 5px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-color); font-weight: bold;">A</button>
+                <button onclick="cambiarTexto('grande')" style="cursor: pointer; padding: 5px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-color); font-weight: bold;">A+</button>
+            </div>
+        </div>
+    </nav>
+</aside>
+
+<!-- Contenido Principal -->
+<main class="main-content">
+    <header class="topbar">
+        <!-- Grupo de Filtros Avanzados -->
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <input type="text" id="buscadorAdmin" onkeyup="filtrarTablaAdmin()" placeholder="🔍 Buscar ID, Fecha..." style="padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--panel-bg); color: var(--text-color); width: 220px;">
+
+            <select id="filtroEstado" onchange="filtrarTablaAdmin()" style="padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--panel-bg); color: var(--text-color); font-weight: bold;">
+                <option value="">📋 Todos los estados</option>
+                <option value="En Análisis">🟠 En Análisis</option>
+                <option value="En Ajuste">🔵 En Ajuste</option>
+                <option value="Concluido">🟢 Concluido</option>
+            </select>
+        </div>
+
+        <div style="flex: 1;"></div>
+
+        <!-- SECCIÓN MODIFICADA: Campana y Panel de Notificaciones Flotante -->
+        <div style="display: flex; align-items: center; gap: 20px; position: relative;">
+
+            <!-- Contenedor de la Campana -->
+            <div id="contenedorCampana" style="position: relative; cursor: pointer; display: flex; align-items: center;" title="Notificaciones">
+                <span style="font-size: 1.5em;">🔔</span>
+                <span id="badgeNotificaciones" style="display: block; position: absolute; top: -5px; right: -8px; background: #e74c3c; color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.7em; font-weight: bold; border: 2px solid var(--panel-bg);">1</span>
+            </div>
+
+            <!-- Panel Flotante Oculto -->
+            <div id="panelNotificaciones" style="display: none; position: absolute; top: 45px; right: 120px; width: 350px; background-color: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 8px 16px rgba(0,0,0,0.4); z-index: 1000; overflow: hidden;">
+
+                <div style="padding: 15px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background-color: var(--bg-color);">
+                    <h3 style="margin: 0; font-size: 1.1em; color: var(--text-color);">Notificaciones</h3>
+                    <button id="marcarLeidasBtn" style="background: transparent; color: var(--primary-color); border: none; cursor: pointer; font-size: 0.85em; font-weight: bold;">Marcar leídas</button>
+                </div>
+
+                <ul id="listaNotificacionesUI" style="list-style: none; margin: 0; padding: 0; max-height: 300px; overflow-y: auto;">
+                    <!-- Notificación simulada para que veas el diseño -->
+                    <li style="padding: 15px; border-bottom: 1px solid var(--border-color); display: flex; gap: 15px; align-items: flex-start; cursor: pointer; transition: background 0.2s;">
+                        <div style="font-size: 1.5em;">💬</div>
+                        <div>
+                            <p style="margin: 0 0 5px 0; font-size: 0.9em; color: var(--text-color);"><strong>Ajustador Juan</strong> respondió al Expediente <strong>#1</strong>.</p>
+                            <span style="font-size: 0.75em; color: var(--text-muted);">Hace 2 min</span>
+                        </div>
+                        <div class="punto-azul" style="width: 10px; height: 10px; background-color: var(--primary-color); border-radius: 50%; margin-top: 5px;"></div>
+                    </li>
+                </ul>
+
+                <div style="padding: 10px; text-align: center; border-top: 1px solid var(--border-color); background-color: var(--bg-color);">
+                    <span style="color: var(--text-muted); font-size: 0.85em;">ASPV Sistema de Alertas</span>
+                </div>
+            </div>
+
+            <!-- PERFIL DE USUARIO DINÁMICO CON BOTÓN DE SALIR -->
+            <div class="user-profile" style="display: flex; align-items: center; gap: 15px;">
+                <strong id="nombreUsuarioUI">Hola, Cargando...</strong>
+                <button onclick="cerrarSesion()" style="background-color: #e74c3c; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s;">Salir 🚪</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="dashboard">
+        <h1 style="margin-top: 0;">Panel de Administración y Revisión</h1>
+        <p style="color: var(--text-muted);">Monitorea los KPIs globales y autoriza el cierre de siniestros.</p>
+
+        <!-- Tarjetas Superiores (KPIs de Oficina) -->
+        <div class="kpi-grid">
+            <div class="card">
+                <h4 style="margin: 0; color: var(--text-muted);">Expedientes Activos</h4>
+                <h2 id="kpiActivos" style="margin: 10px 0; color: #f39c12;">--</h2>
+                <p style="margin: 0; font-size: 0.85em; color: var(--text-muted);">En proceso de ajuste o revisión</p>
+            </div>
+
+            <div class="card">
+                <h4 style="margin: 0; color: var(--text-muted);">Siniestros Concluidos</h4>
+                <h2 id="kpiConcluidos" style="margin: 10px 0; color: #2ecc71;">--</h2>
+                <p style="margin: 0; font-size: 0.85em; color: var(--text-muted);">Cerrados exitosamente</p>
+            </div>
+
+            <div class="card">
+                <h4 style="margin: 0; color: var(--text-muted);">Documentos Pendientes</h4>
+                <h2 id="kpiDocs" style="margin: 10px 0; color: #e74c3c;">--</h2>
+                <p style="margin: 0; font-size: 0.85em; color: var(--text-muted);">Archivos por subir al sistema</p>
+            </div>
+        </div>
+
+        <!-- Bandeja de Revisión -->
+        <div class="card" style="margin-top: 20px;">
+            <h3>Bandeja de Revisión y Cierre</h3>
+            <p style="color: var(--text-muted); font-size: 0.9em;">Selecciona un expediente para revisar su documentación y cambiar su estado.</p>
+
+            <div id="contenedorTablasSiniestros" style="overflow-x: auto; margin-top: 15px;">
+                <!-- JavaScript inyectará las tablas separadas por ajustador aquí -->
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Librerías para generar PDF mágicamente desde el navegador -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+
+<script src="resumen.js"></script>
+
+<!-- Modal del Administrador (Para revisar y cambiar estado) -->
+<div id="modalAdmin" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center;">
+    <div class="card" style="width: 550px; max-width: 90%; background: var(--panel-bg); border-radius: 12px; padding: 20px; position: relative;">
+        <button onclick="cerrarModalAdmin()" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.2em; color: var(--text-color); cursor: pointer;">✖</button>
+
+        <h3 style="margin-top: 0;">Revisión - Expediente <span id="modalAdminExpId" style="color: var(--primary-color);"></span></h3>
+        <p style="color: var(--text-muted); font-size: 0.9em; margin-top: -10px;">Validación de documentos y control de estado.</p>
+        <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 15px 0;">
+
+        <div id="modalAdminContenido" style="display: flex; flex-direction: column; gap: 10px;">
+            <!-- Contenido inyectado por JS -->
+        </div>
+    </div>
+</div>
+
+<!-- Lógica visual interactiva para el panel de notificaciones -->
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const campana = document.getElementById('contenedorCampana');
+        const panel = document.getElementById('panelNotificaciones');
+        const marcarBtn = document.getElementById('marcarLeidasBtn');
+        const badge = document.getElementById('badgeNotificaciones');
+
+        // Mostrar/Ocultar Panel al presionar la campana
+        campana.addEventListener('click', (e) => {
+            e.stopPropagation();
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        });
+
+        // Ocultar panel si haces clic afuera de él
+        document.addEventListener('click', (e) => {
+            if (panel.style.display === 'block' && !panel.contains(e.target) && !campana.contains(e.target)) {
+                panel.style.display = 'none';
+            }
+        });
+
+        // Simular "Marcar como leídas"
+        marcarBtn.addEventListener('click', () => {
+            badge.style.display = 'none';
+            document.querySelectorAll('.punto-azul').forEach(punto => punto.style.display = 'none');
+        });
+    });
+</script>
+
+</body>
+</html>

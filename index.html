@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASPV - Gestión de Siniestros</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<aside class="sidebar">
+    <img src="imagenes/LogoASPV.jpg" alt="Logo ASPV" style="width: 110px; margin-bottom: 15px; margin-top: 5px; border-radius: 12px;">
+    <p style="color: var(--text-muted); font-size: 0.9em; margin-bottom: 40px;">GESTIÓN DE SINIESTROS</p>
+
+    <nav style="display: flex; flex-direction: column; gap: 15px;" id="navMenu">
+        <strong>Menú Principal</strong>
+        <a href="admin.html" id="btnAdmin" style="display: none; color: var(--text-color); text-decoration: none;">⚙️ Gerencia y Usuarios</a>
+        <a href="resumen.html" id="btnAnalista" style="display: none; color: var(--text-color); text-decoration: none;">📊 Panel de Análisis</a>
+        <a href="index.html" id="btnAjustador" style="display: none; color: var(--text-color); text-decoration: none;">📁 Mis Expedientes</a>
+        <a href="calendario.html" id="btnCalendario" style="display: none; color: var(--text-color); text-decoration: none;">📅 Calendario</a>
+
+        <script>
+            const rolActual = localStorage.getItem('aspv_rol');
+            if (rolActual === 'Admin') {
+                document.getElementById('btnAdmin').style.display = 'block';
+                document.getElementById('btnAnalista').style.display = 'block';
+                document.getElementById('btnCalendario').style.display = 'block';
+            } else if (rolActual === 'Analista') {
+                document.getElementById('btnAnalista').style.display = 'block';
+                document.getElementById('btnCalendario').style.display = 'block';
+            } else if (rolActual === 'Ajustador') {
+                document.getElementById('btnAjustador').style.display = 'block';
+                document.getElementById('btnCalendario').style.display = 'block';
+            }
+
+            const urlActual = window.location.pathname.split('/').pop() || 'index.html';
+            document.querySelectorAll('#navMenu a').forEach(enlace => {
+                if (enlace.getAttribute('href') === urlActual) {
+                    enlace.style.color = 'var(--primary-color)';
+                    enlace.style.fontWeight = 'bold';
+                }
+            });
+        </script>
+
+        <div style="margin-top: 40px;">
+            <p style="font-size: 0.8em; color: var(--text-muted); margin-bottom: 8px;">Apariencia:</p>
+            <div style="display: flex; gap: 5px;">
+                <button onclick="cambiarTema('light')" style="cursor: pointer; padding: 5px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-color);">☀️</button>
+                <button onclick="cambiarTema('dark')" style="cursor: pointer; padding: 5px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-color);">🌙</button>
+                <button onclick="cambiarTexto('normal')" style="cursor: pointer; padding: 5px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-color); font-weight: bold;">A</button>
+                <button onclick="cambiarTexto('grande')" style="cursor: pointer; padding: 5px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-color); font-weight: bold;">A+</button>
+            </div>
+        </div>
+    </nav>
+</aside>
+
+<main class="main-content">
+    <header class="topbar">
+        <input type="text" id="buscadorExpedientes" onkeyup="filtrarTabla()" placeholder="🔍 Buscar expediente o estado..." style="padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--panel-bg); color: var(--text-color); width: 300px;">
+
+        <div style="flex: 1;"></div>
+
+        <!-- Campana y Panel de Notificaciones -->
+        <div style="display: flex; align-items: center; gap: 20px; position: relative;">
+            <div id="contenedorCampana" style="position: relative; cursor: pointer; display: flex; align-items: center;" title="Notificaciones">
+                <span style="font-size: 1.5em;">🔔</span>
+                <span id="badgeNotificaciones" style="display: none; position: absolute; top: -5px; right: -8px; background: #e74c3c; color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.7em; font-weight: bold; border: 2px solid var(--panel-bg);">0</span>
+            </div>
+
+            <div id="panelNotificaciones" style="display: none; position: absolute; top: 45px; right: 120px; width: 350px; background-color: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 8px 16px rgba(0,0,0,0.4); z-index: 1000; overflow: hidden;">
+                <div style="padding: 15px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background-color: var(--bg-color);">
+                    <h3 style="margin: 0; font-size: 1.1em; color: var(--text-color);">Notificaciones</h3>
+                    <button id="marcarLeidasBtn" style="background: transparent; color: var(--primary-color); border: none; cursor: pointer; font-size: 0.85em; font-weight: bold;">Marcar leídas</button>
+                </div>
+                <ul id="listaNotificacionesUI" style="list-style: none; margin: 0; padding: 0; max-height: 300px; overflow-y: auto;">
+                    <!-- Notificación de ejemplo -->
+                    <li style="padding: 15px; border-bottom: 1px solid var(--border-color); display: flex; gap: 15px; align-items: flex-start; cursor: pointer; transition: background 0.2s;">
+                        <div style="font-size: 1.5em;">💬</div>
+                        <div>
+                            <p style="margin: 0 0 5px 0; font-size: 0.9em; color: var(--text-color);">Tienes notificaciones nuevas del sistema.</p>
+                            <span style="font-size: 0.75em; color: var(--text-muted);">Hace un momento</span>
+                        </div>
+                        <div class="punto-azul" style="width: 10px; height: 10px; background-color: var(--primary-color); border-radius: 50%; margin-top: 5px;"></div>
+                    </li>
+                </ul>
+                <div style="padding: 10px; text-align: center; border-top: 1px solid var(--border-color); background-color: var(--bg-color);">
+                    <span style="color: var(--text-muted); font-size: 0.85em;">ASPV Sistema de Alertas</span>
+                </div>
+            </div>
+
+            <div class="user-profile" style="display: flex; align-items: center; gap: 15px;">
+                <strong id="nombreUsuarioUI">Hola, Cargando...</strong>
+                <button onclick="cerrarSesion()" style="background-color: #e74c3c; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s;">Salir 🚪</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="dashboard">
+        <h1 style="margin-top: 0;">Ajustadores de siniestros</h1>
+        <p style="color: var(--text-muted);">Registra un nuevo choque y organiza toda su documentación.</p>
+
+        <div class="kpi-grid">
+            <div class="card">
+                <h4 style="margin: 0; color: var(--text-muted);">Tiempo de referencia</h4>
+                <h2 style="margin: 10px 0;">5 días</h2>
+                <p style="margin: 0; font-size: 0.85em; color: var(--text-muted);">Plazo recomendado para completar</p>
+            </div>
+            <div class="card">
+                <h4 style="margin: 0; color: var(--text-muted);">Expedientes activos</h4>
+                <h2 id="contadorExpedientes" style="margin: 10px 0;">--</h2>
+            </div>
+            <div class="card">
+                <h4 style="margin: 0; color: var(--text-muted);">Documentos por cargar</h4>
+                <h2 id="contadorDocumentos" style="margin: 10px 0;">-- <span style="font-size: 0.5em; color: orange;">Pendientes</span></h2>
+            </div>
+        </div>
+
+        <div class="grid-dos-columnas">
+            <div class="card">
+                <h3>Generación del expediente</h3>
+                <p style="color: var(--text-muted);">Completa los datos básicos del siniestro.</p>
+                <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 20px 0;">
+
+                <form id="formExpediente" style="display: flex; flex-direction: column; gap: 15px;">
+                    <div style="display: flex; gap: 15px;">
+                        <div style="flex: 1;">
+                            <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold;">Número de siniestro</label>
+                            <input type="text" id="numSiniestro" placeholder="SIN-2026-0000" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); margin-top: 5px; box-sizing: border-box;">
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold;">Fecha del accidente</label>
+                            <input type="date" id="fechaAccidente" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); margin-top: 5px; box-sizing: border-box;">
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 15px;">
+                        <div style="flex: 1;">
+                            <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold;">Asegurado</label>
+                            <input type="text" id="nombreAsegurado" placeholder="Nombre completo" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); margin-top: 5px; box-sizing: border-box;">
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold;">Lugar (Ciudad/Zona)</label>
+                            <input type="text" id="lugarSiniestro" placeholder="Ej. Mérida, Yucatán" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); margin-top: 5px; box-sizing: border-box;">
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 10px;">
+                        <div style="flex: 1;">
+                            <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold;">Póliza</label>
+                            <input type="text" id="poliza" placeholder="POL-458921" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); margin-top: 5px; box-sizing: border-box;">
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold;">Tipo Seguro</label>
+                            <select id="tipoSeguro" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); margin-top: 5px; box-sizing: border-box;">
+                                <option value="Automóvil">Automóvil</option>
+                                <option value="Hogar">Hogar</option>
+                                <option value="Responsabilidad Civil">Responsabilidad Civil</option>
+                                <option value="Viaje">Viaje</option>
+                            </select>
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold;">Monto Est. ($)</label>
+                            <input type="number" id="montoSiniestro" placeholder="0.00" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); margin-top: 5px; box-sizing: border-box;">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold;">Relatoría de los Hechos</label>
+                        <textarea id="relatoriaSiniestro" rows="3" placeholder="Ej. Se acude al lugar del siniestro sobre la calle 55..." style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); margin-top: 5px; box-sizing: border-box; resize: vertical;"></textarea>
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end; margin-top: 5px;">
+                        <button type="submit" style="background-color: var(--primary-color); color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: background-color 0.3s;">
+                            Continuar a documentación ➔
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="card">
+                <h3>Resumen de documentos</h3>
+                <p style="color: var(--text-muted); font-size: 0.9em;">Selecciona los archivos correspondientes.</p>
+                <form id="formDocumentos" style="display: flex; flex-direction: column; gap: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+                        <label style="font-weight: bold; font-size: 0.9em;">📄 DOA <span style="color: var(--text-muted); font-weight: normal; font-size: 0.8em;"><br>Declaración de ocurrencia</span></label>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <label style="font-size: 0.75em; color: var(--text-muted);"><input type="checkbox" id="naDOA_main" onchange="document.getElementById('archivoDOA').disabled = this.checked"> N/A</label>
+                            <input type="file" id="archivoDOA" accept=".pdf, image/*" style="width: 170px; font-size: 0.8em; color: var(--text-color);">
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+                        <label style="font-weight: bold; font-size: 0.9em;">📄 ORD <span style="color: var(--text-muted); font-weight: normal; font-size: 0.8em;"><br>Orden de servicio</span></label>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <label style="font-size: 0.75em; color: var(--text-muted);"><input type="checkbox" id="naORD_main" onchange="document.getElementById('archivoORD').disabled = this.checked"> N/A</label>
+                            <input type="file" id="archivoORD" accept=".pdf, image/*" style="width: 170px; font-size: 0.8em; color: var(--text-color);">
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+                        <label style="font-weight: bold; font-size: 0.9em;">🛡️ PM <span style="color: var(--text-muted); font-weight: normal; font-size: 0.8em;"><br>Pases médicos</span></label>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <label style="font-size: 0.75em; color: var(--text-muted);"><input type="checkbox" id="naPM_main" onchange="document.getElementById('archivoPM').disabled = this.checked"> N/A</label>
+                            <input type="file" id="archivoPM" accept=".pdf, image/*" style="width: 170px; font-size: 0.8em; color: var(--text-color);">
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: center; margin-top: 10px;">
+                        <button type="submit" style="background-color: transparent; color: var(--primary-color); border: 2px solid var(--primary-color); padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.3s;">
+                            ☁️ Subir documentación
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top: 20px;">
+            <h3>Bandeja de Entrada</h3>
+            <p style="color: var(--text-muted); font-size: 0.9em;">Historial de siniestros registrados.</p>
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; text-align: left; border-collapse: collapse; margin-top: 15px;">
+                    <thead>
+                    <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-muted);">
+                        <th style="padding: 12px 10px;">ID Ajuste</th>
+                        <th style="padding: 12px 10px;">Fecha del Accidente</th>
+                        <th style="padding: 12px 10px;">Estado actual</th>
+                        <th style="padding: 12px 10px;">Acciones</th>
+                    </tr>
+                    </thead>
+                    <tbody id="tablaExpedientes"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script src="app.js"></script>
+
+<div id="modalDetalle" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center;">
+    <div class="card" style="width: 550px; max-width: 90%; background: var(--panel-bg); border-radius: 12px; padding: 20px; position: relative;">
+        <button onclick="cerrarModal()" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.2em; color: var(--text-color); cursor: pointer;">✖</button>
+        <h3 style="margin-top: 0;">Expediente <span id="modalExpId" style="color: var(--primary-color);"></span></h3>
+        <p style="color: var(--text-muted); font-size: 0.9em; margin-top: -10px;">Documentos vinculados a este siniestro.</p>
+        <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 15px 0;">
+        <div id="modalContenido" style="display: flex; flex-direction: column; gap: 10px;"></div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const campana = document.getElementById('contenedorCampana');
+        const panel = document.getElementById('panelNotificaciones');
+        const marcarBtn = document.getElementById('marcarLeidasBtn');
+        const badge = document.getElementById('badgeNotificaciones');
+
+        if (campana && panel) {
+            campana.addEventListener('click', (e) => {
+                e.stopPropagation();
+                panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+            });
+            document.addEventListener('click', (e) => {
+                if (panel.style.display === 'block' && !panel.contains(e.target) && !campana.contains(e.target)) {
+                    panel.style.display = 'none';
+                }
+            });
+        }
+
+        if (marcarBtn && badge) {
+            marcarBtn.addEventListener('click', () => {
+                badge.style.display = 'none';
+                document.querySelectorAll('.punto-azul').forEach(punto => punto.style.display = 'none');
+            });
+        }
+    });
+</script>
+
+</body>
+</html>
