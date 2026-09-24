@@ -1,11 +1,34 @@
 // ==========================================
+// FUNCIÓN GLOBAL: TOASTS ANIMADOS
+// ==========================================
+function mostrarToast(mensaje, tipo = 'info') {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    toast.className = `toast ${tipo}`;
+
+    let icono = 'ℹ️';
+    if (tipo === 'success') icono = '✅';
+    if (tipo === 'error') icono = '❌';
+    if (tipo === 'warning') icono = '⚠️';
+
+    toast.innerHTML = `<span>${icono}</span> <span>${mensaje}</span>`;
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        if (toast.parentNode) toast.parentNode.removeChild(toast);
+    }, 3500);
+}
+
+// ==========================================
 // 0. SEGURIDAD Y CONTROL DE ACCESO
 // ==========================================
 const rolUsuario = localStorage.getItem('aspv_rol');
 const nombreUsuario = localStorage.getItem('aspv_nombre');
 
 if (!rolUsuario || rolUsuario !== 'Ajustador') {
-    alert("⛔ Acceso denegado. Inicia sesión como Ajustador.");
+    // Si no está logueado, lo mandamos al login sin esperar.
     window.location.href = 'login.html';
 }
 
@@ -47,11 +70,12 @@ document.getElementById('formExpediente').addEventListener('submit', async (e) =
         lugar: document.getElementById('lugarSiniestro').value,
         seguro: document.getElementById('tipoSeguro').value,
         monto: document.getElementById('montoSiniestro').value,
+        kilometros: document.getElementById('kmSiniestro').value,
         relatoria: document.getElementById('relatoriaSiniestro').value
     };
 
     if (!datosSiniestro.numSiniestro || !datosSiniestro.fechaAccidente) {
-        alert("⚠️ Por favor, llena al menos el número de siniestro y la fecha.");
+        mostrarToast("Por favor, llena al menos el número de siniestro y la fecha.", "warning");
         return;
     }
 
@@ -65,7 +89,9 @@ document.getElementById('formExpediente').addEventListener('submit', async (e) =
                 Lugar: datosSiniestro.lugar,
                 Seguro: datosSiniestro.seguro,
                 Monto: datosSiniestro.monto,
-                Relatoria: datosSiniestro.relatoria
+                Kilometros: datosSiniestro.kilometros,
+                Relatoria: datosSiniestro.relatoria,
+                remitente: nombreUsuario
             })
         });
 
@@ -73,15 +99,16 @@ document.getElementById('formExpediente').addEventListener('submit', async (e) =
 
         if (respuesta.ok) {
             expedienteActualId = resultado.ajusteId;
-            alert(`✅ ¡Expediente ${datosSiniestro.numSiniestro} creado!\nID en BD: ${expedienteActualId}\n\n👉 Ya puedes subir sus documentos del lado derecho.`);
+            mostrarToast(`¡Expediente ${datosSiniestro.numSiniestro} creado! Ya puedes subir sus documentos.`, "success");
             cargarResumenDashboard();
             cargarTablaExpedientes();
+            revisarNotificaciones();
         } else {
-            alert(`❌ Error del servidor: ${resultado.error}`);
+            mostrarToast(`Error del servidor: ${resultado.error}`, "error");
         }
     } catch (error) {
         console.error("Error al conectar con la API:", error);
-        alert("🚨 No se pudo conectar con el servidor.");
+        mostrarToast("No se pudo conectar con el servidor.", "error");
     }
 });
 
@@ -89,7 +116,7 @@ document.getElementById('formDocumentos').addEventListener('submit', async (e) =
     e.preventDefault();
 
     if (!expedienteActualId) {
-        alert("⚠️ Primero debes 'Continuar a documentación' en el panel izquierdo para crear un nuevo expediente.");
+        mostrarToast("Primero debes 'Continuar a documentación' para crear un nuevo expediente.", "warning");
         return;
     }
 
@@ -102,9 +129,9 @@ document.getElementById('formDocumentos').addEventListener('submit', async (e) =
     const archivoPM = document.getElementById('archivoPM').files[0];
     const naPM = document.getElementById('naPM_main').checked;
 
-    if (!archivoDOA && !naDOA) return alert("⚠️ Para DOA: Sube un archivo o marca la casilla N/A");
-    if (!archivoORD && !naORD) return alert("⚠️ Para ORD: Sube un archivo o marca la casilla N/A");
-    if (!archivoPM && !naPM) return alert("⚠️ Para PM: Sube un archivo o marca la casilla N/A");
+    if (!archivoDOA && !naDOA) return mostrarToast("Para DOA: Sube un archivo o marca N/A", "warning");
+    if (!archivoORD && !naORD) return mostrarToast("Para ORD: Sube un archivo o marca N/A", "warning");
+    if (!archivoPM && !naPM) return mostrarToast("Para PM: Sube un archivo o marca N/A", "warning");
 
     const subirArchivo = async (archivo, tipo, noAplica) => {
         const formData = new FormData();
@@ -120,13 +147,13 @@ document.getElementById('formDocumentos').addEventListener('submit', async (e) =
         }
     };
 
-    alert("⏳ Procesando documentación del expediente " + expedienteActualId + "...");
+    mostrarToast(`Procesando documentación del expediente ${expedienteActualId}...`, "info");
 
     await subirArchivo(archivoDOA, 'DOA', naDOA);
     await subirArchivo(archivoORD, 'ORD', naORD);
     await subirArchivo(archivoPM, 'PM', naPM);
 
-    alert(`✅ ¡Documentos guardados con éxito para el Expediente ${expedienteActualId}!`);
+    mostrarToast(`¡Documentos guardados con éxito para el Expediente ${expedienteActualId}!`, "success");
 
     document.getElementById('formExpediente').reset();
     document.getElementById('formDocumentos').reset();
@@ -143,7 +170,6 @@ document.getElementById('formDocumentos').addEventListener('submit', async (e) =
 // ==========================================
 async function cargarResumenDashboard() {
     try {
-        // En lugar de llamar al resumen global, calculamos los KPIs en base a SUS expedientes
         const respuesta = await fetch('http://localhost:3000/api/lista-expedientes');
         if (respuesta.ok) {
             const expedientes = await respuesta.json();
@@ -152,8 +178,6 @@ async function cargarResumenDashboard() {
             const activos = misExpedientes.filter(exp => exp.Estado !== 'Concluido').length;
 
             document.getElementById('contadorExpedientes').innerText = activos;
-            // Para simplificar, el KPI de documentos pendientes lo ocultaremos o dejaremos en 0 si no hay activos,
-            // ya que requeriría otra llamada pesada a la BD por cada expediente.
             document.getElementById('contadorDocumentos').innerHTML = `${activos > 0 ? 'Revisar' : '0'} <span style="font-size: 0.4em; color: #ffb703;">Pendientes</span>`;
         }
     } catch (error) {
@@ -171,20 +195,20 @@ async function cargarTablaExpedientes() {
         const respuesta = await fetch('http://localhost:3000/api/lista-expedientes');
         if (respuesta.ok) {
             const expedientes = await respuesta.json();
-
-            // EL FILTRO MÁGICO: Solo guardamos en la lista los expedientes que coinciden con su nombre
             const misExpedientes = expedientes.filter(exp => exp.AjustadorNombre === nombreUsuario);
 
             const tbody = document.getElementById('tablaExpedientes');
             tbody.innerHTML = '';
 
-            misExpedientes.forEach(exp => {
+            misExpedientes.forEach((exp, index) => {
+                // EL TRUCO VISUAL: Cuenta del más nuevo al más viejo
+                const folioPersonal = misExpedientes.length - index;
                 const fechaOcurrencia = new Date(exp.FechaOcurrencia).toLocaleDateString('es-MX');
                 const colorEstado = exp.Estado === 'Concluido' ? '#2ecc71' : '#f39c12';
 
                 tbody.innerHTML += `
                     <tr style="border-bottom: 1px solid var(--border-color); transition: background 0.3s;">
-                        <td style="padding: 15px 10px; font-weight: bold;"># ${exp.AjusteID}</td>
+                        <td style="padding: 15px 10px; font-weight: bold;"># ${folioPersonal}</td>
                         <td style="padding: 15px 10px; color: var(--text-muted);">${fechaOcurrencia}</td>
                         <td style="padding: 15px 10px;">
                             <span style="background-color: ${colorEstado}20; color: ${colorEstado}; padding: 5px 10px; border-radius: 20px; font-size: 0.85em; font-weight: bold;">
@@ -192,7 +216,7 @@ async function cargarTablaExpedientes() {
                             </span>
                         </td>
                         <td style="padding: 15px 10px;">
-                            <button onclick="verDetalle(${exp.AjusteID})" style="background: transparent; color: var(--primary-color); border: 1px solid var(--primary-color); padding: 5px 15px; border-radius: 5px; cursor: pointer; font-size: 0.85em;">
+                            <button onclick="folioVisualApp = ${folioPersonal}; verDetalle(${exp.AjusteID})" style="background: transparent; color: var(--primary-color); border: 1px solid var(--primary-color); padding: 5px 15px; border-radius: 5px; cursor: pointer; font-size: 0.85em;">
                                 Ver detalle
                             </button>
                         </td>
@@ -210,11 +234,14 @@ cargarTablaExpedientes();
 // ==========================================
 // 5. VENTANA EMERGENTE (MODAL) LÓGICA DE TURNOS
 // ==========================================
+let folioVisualApp = null;
+
 async function verDetalle(ajusteId) {
     const modal = document.getElementById('modalDetalle');
     const modalContenido = document.getElementById('modalContenido');
 
-    document.getElementById('modalExpId').innerText = `#${ajusteId}`;
+    // Inyecta el folio visual en el título del modal
+    document.getElementById('modalExpId').innerText = folioVisualApp ? `#${folioVisualApp}` : `#${ajusteId}`;
     modal.style.display = 'flex';
     modalContenido.innerHTML = '<p style="color: var(--text-muted); text-align: center;">Cargando información...</p>';
 
@@ -346,9 +373,9 @@ async function subirDesdeModal(ajusteId) {
     const archivoORD = elORD ? elORD.files[0] : null;
     const archivoPM = elPM ? elPM.files[0] : null;
 
-    if (elDOA && !archivoDOA && !naDOA) return alert("⚠️ Para DOA: Sube el archivo o marca N/A");
-    if (elORD && !archivoORD && !naORD) return alert("⚠️ Para ORD: Sube el archivo o marca N/A");
-    if (elPM && !archivoPM && !naPM) return alert("⚠️ Para PM: Sube el archivo o marca N/A");
+    if (elDOA && !archivoDOA && !naDOA) return mostrarToast("Para DOA: Sube el archivo o marca N/A", "warning");
+    if (elORD && !archivoORD && !naORD) return mostrarToast("Para ORD: Sube el archivo o marca N/A", "warning");
+    if (elPM && !archivoPM && !naPM) return mostrarToast("Para PM: Sube el archivo o marca N/A", "warning");
 
     const subirArchivo = async (archivo, tipo, noAplica) => {
         if (!archivo && !noAplica) return;
@@ -361,12 +388,12 @@ async function subirDesdeModal(ajusteId) {
         await fetch('http://localhost:3000/api/documentos', { method: 'POST', body: formData });
     };
 
-    alert("⏳ Procesando expediente...");
+    mostrarToast("Procesando expediente...", "info");
     if (elDOA) await subirArchivo(archivoDOA, 'DOA', naDOA);
     if (elORD) await subirArchivo(archivoORD, 'ORD', naORD);
     if (elPM) await subirArchivo(archivoPM, 'PM', naPM);
 
-    alert("✅ ¡Expediente actualizado exitosamente!");
+    mostrarToast("¡Expediente actualizado exitosamente!", "success");
     verDetalle(ajusteId);
     cargarResumenDashboard();
 }
@@ -395,7 +422,7 @@ async function enviarRespuestaAjustador(ajusteId) {
     const mensaje = input.value.trim();
 
     if (!mensaje) {
-        alert("⚠️ Escribe un mensaje antes de enviar.");
+        mostrarToast("Escribe un mensaje antes de enviar.", "warning");
         return;
     }
 
@@ -417,12 +444,10 @@ async function enviarRespuestaAjustador(ajusteId) {
         const archivoORD = elORD ? elORD.files[0] : null;
         const archivoPM = elPM ? elPM.files[0] : null;
 
-        // Si falta algún documento exigido y no tiene archivo ni N/A, bloqueamos.
-        if (elDOA && !archivoDOA && !naDOA) return alert("⚠️ Para DOA: Sube el archivo o marca N/A antes de enviar la respuesta.");
-        if (elORD && !archivoORD && !naORD) return alert("⚠️ Para ORD: Sube el archivo o marca N/A antes de enviar la respuesta.");
-        if (elPM && !archivoPM && !naPM) return alert("⚠️ Para PM: Sube el archivo o marca N/A antes de enviar la respuesta.");
+        if (elDOA && !archivoDOA && !naDOA) return mostrarToast("Para DOA: Sube el archivo o marca N/A antes de enviar.", "warning");
+        if (elORD && !archivoORD && !naORD) return mostrarToast("Para ORD: Sube el archivo o marca N/A antes de enviar.", "warning");
+        if (elPM && !archivoPM && !naPM) return mostrarToast("Para PM: Sube el archivo o marca N/A antes de enviar.", "warning");
 
-        // Si todo está bien, los empaquetamos para subirlos
         if (elDOA) archivosASubir.push({ archivo: archivoDOA, tipo: 'DOA', noAplica: naDOA });
         if (elORD) archivosASubir.push({ archivo: archivoORD, tipo: 'ORD', noAplica: naORD });
         if (elPM) archivosASubir.push({ archivo: archivoPM, tipo: 'PM', noAplica: naPM });
@@ -431,7 +456,7 @@ async function enviarRespuestaAjustador(ajusteId) {
     try {
         // 2. SUBIR LOS ARCHIVOS (SI EXISTEN)
         if (archivosASubir.length > 0) {
-            alert("⏳ Subiendo documentos y enviando respuesta...");
+            mostrarToast("Subiendo documentos y enviando respuesta...", "info");
             for (const item of archivosASubir) {
                 if (!item.archivo && !item.noAplica) continue;
                 const formData = new FormData();
@@ -448,16 +473,17 @@ async function enviarRespuestaAjustador(ajusteId) {
         const res = await fetch(`http://localhost:3000/api/ajustes/${ajusteId}/respuesta-ajustador`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nuevoMensaje: mensaje })
+            body: JSON.stringify({ nuevoMensaje: mensaje, remitente: nombreUsuario })
         });
 
         if (res.ok) {
-            alert("✅ Respuesta y documentos enviados exitosamente.");
+            mostrarToast("✅ Respuesta y documentos enviados exitosamente.", "success");
             verDetalle(ajusteId);
             cargarResumenDashboard();
+            revisarNotificaciones();
         } else {
             const error = await res.json();
-            alert(`❌ Error: ${error.error}`);
+            mostrarToast(`Error: ${error.error}`, "error");
         }
     } catch (error) {
         console.error("Error al enviar respuesta:", error);
@@ -513,7 +539,6 @@ async function revisarNotificaciones() {
     }
 }
 
-// Escuchador de clic para marcar como leídas
 document.addEventListener("DOMContentLoaded", () => {
     const marcarBtn = document.getElementById('marcarLeidasBtn');
     if (marcarBtn) {

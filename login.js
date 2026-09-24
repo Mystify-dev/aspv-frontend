@@ -1,3 +1,26 @@
+// ==========================================
+// FUNCIÓN GLOBAL: TOASTS ANIMADOS
+// ==========================================
+function mostrarToast(mensaje, tipo = 'info') {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    toast.className = `toast ${tipo}`;
+
+    let icono = 'ℹ️';
+    if (tipo === 'success') icono = '✅';
+    if (tipo === 'error') icono = '❌';
+    if (tipo === 'warning') icono = '⚠️';
+
+    toast.innerHTML = `<span>${icono}</span> <span>${mensaje}</span>`;
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        if (toast.parentNode) toast.parentNode.removeChild(toast);
+    }, 3500);
+}
+
 document.getElementById('formLogin').addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -20,9 +43,7 @@ document.getElementById('formLogin').addEventListener('submit', async (e) => {
             localStorage.setItem('aspv_rol', datos.usuario.Rol);
             localStorage.setItem('aspv_id', datos.usuario.UsuarioID);
 
-            alert(`✅ Bienvenido, ${datos.usuario.Nombre}`);
-
-            // EL ENRUTADOR INTELIGENTE:
+            // EL ENRUTADOR INTELIGENTE (Redirección fluida sin alertas):
             if (datos.usuario.Rol === 'Admin') {
                 window.location.href = 'admin.html'; // Gerencia va al panel general
             } else if (datos.usuario.Rol === 'Analista') {
@@ -31,10 +52,10 @@ document.getElementById('formLogin').addEventListener('submit', async (e) => {
                 window.location.href = 'index.html'; // Los ajustadores van a subir siniestros
             }
         } else {
-            alert(`❌ ${datos.error}`);
+            mostrarToast(datos.error || "Credenciales incorrectas", "error");
         }
     } catch (error) {
         console.error("Error al iniciar sesión:", error);
-        alert("🚨 Error al conectar con el servidor. Verifica que node server.js esté corriendo.");
+        mostrarToast("Error al conectar con el servidor. Verifica que node server.js esté corriendo.", "error");
     }
 });

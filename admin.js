@@ -1,30 +1,32 @@
 // ==========================================
-// 0. SEGURIDAD Y CONTROL
+// FUNCIÓN GLOBAL: TOASTS ANIMADOS
 // ==========================================
+function mostrarToast(mensaje, tipo = 'info') {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+    const toast = document.createElement('div');
+    toast.className = `toast ${tipo}`;
+    let icono = 'ℹ️';
+    if (tipo === 'success') icono = '✅';
+    if (tipo === 'error') icono = '❌';
+    if (tipo === 'warning') icono = '⚠️';
+    toast.innerHTML = `<span>${icono}</span> <span>${mensaje}</span>`;
+    container.appendChild(toast);
+    setTimeout(() => { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 3500);
+}
+
 const rolUsuario = localStorage.getItem('aspv_rol');
 const nombreUsuario = localStorage.getItem('aspv_nombre');
 
 if (!rolUsuario || (rolUsuario !== 'Admin' && rolUsuario !== 'Analista')) {
-    alert("⛔ Acceso denegado. Privilegios de Gerencia o Analista requeridos.");
     window.location.href = 'login.html';
 }
-
-document.addEventListener("DOMContentLoaded", () => {
-    document.getElementById('nombreUsuarioUI').innerText = `Hola, ${nombreUsuario}`;
-    cargarMetricas();
-    cargarPersonal();
-    cargarTablaDetallada();
-    inicializarGraficas();
-});
 
 function cerrarSesion() {
     localStorage.clear();
     window.location.href = 'login.html';
 }
 
-// ==========================================
-// 1. CARGA DE DATOS (Métricas y Tabla)
-// ==========================================
 async function cargarMetricas() {
     try {
         const res = await fetch('http://localhost:3000/api/dashboard/gerencia');
@@ -33,9 +35,7 @@ async function cargarMetricas() {
             document.getElementById('kpiDia').innerText = datos.dia;
             document.getElementById('kpiMes').innerText = datos.mes;
         }
-    } catch (error) {
-        console.error("Error al cargar métricas:", error);
-    }
+    } catch (error) { console.error("Error al cargar métricas:", error); }
 }
 
 async function cargarTablaDetallada() {
@@ -47,7 +47,6 @@ async function cargarTablaDetallada() {
             if(!contenedor) return;
             contenedor.innerHTML = '';
 
-            // Agrupamos los expedientes por el nombre del ajustador
             const agrupados = expedientes.reduce((acc, exp) => {
                 const ajustador = exp.AjustadorNombre || 'Sin asignar';
                 if (!acc[ajustador]) acc[ajustador] = [];
@@ -55,7 +54,6 @@ async function cargarTablaDetallada() {
                 return acc;
             }, {});
 
-            // Generamos una tabla para cada ajustador
             for (const [ajustador, lista] of Object.entries(agrupados)) {
                 let htmlTabla = `
                     <h4 style="margin: 25px 0 10px 0; color: var(--primary-color); border-bottom: 2px solid var(--border-color); padding-bottom: 5px;">
@@ -66,7 +64,8 @@ async function cargarTablaDetallada() {
                         <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-muted);">
                             <th style="padding: 12px 10px;">ID Siniestro</th>
                             <th style="padding: 12px 10px;">Lugar</th>
-                            <th style="padding: 12px 10px;">Tipo de Seguro</th>
+                            <th style="padding: 12px 10px;">Seguro</th>
+                            <th style="padding: 12px 10px;">Kilometraje</th>
                             <th style="padding: 12px 10px;">Fecha</th>
                             <th style="padding: 12px 10px;">Estado</th>
                             <th style="padding: 12px 10px;">Monto</th>
@@ -76,18 +75,21 @@ async function cargarTablaDetallada() {
                         <tbody>
                 `;
 
-                lista.forEach(exp => {
+                lista.forEach((exp, index) => {
+                    const folioPersonal = lista.length - index;
                     const fecha = new Date(exp.FechaOcurrencia).toLocaleDateString('es-MX');
                     let colorEstado = exp.Estado === 'Concluido' ? '#2ecc71' : (exp.Estado === 'En Análisis' ? '#f39c12' : '#3498db');
                     const lugar = exp.Lugar || 'N/A';
                     const seguro = exp.Seguro || 'N/A';
+                    const kms = exp.Kilometros ? new Intl.NumberFormat('es-MX').format(exp.Kilometros) + ' km' : 'N/A';
                     const monto = exp.Monto ? new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(exp.Monto) : '$0.00';
 
                     htmlTabla += `
                         <tr style="border-bottom: 1px solid var(--border-color);">
-                            <td style="padding: 12px 10px; font-weight: bold;">SIN-${exp.AjusteID.toString().padStart(3, '0')}</td>
+                            <td style="padding: 12px 10px; font-weight: bold;">SIN-${folioPersonal.toString().padStart(3, '0')}</td>
                             <td style="padding: 12px 10px;">${lugar}</td>
                             <td style="padding: 12px 10px;">${seguro}</td>
+                            <td style="padding: 12px 10px; color: var(--text-muted);">${kms}</td>
                             <td style="padding: 12px 10px; color: var(--text-muted);">${fecha}</td>
                             <td style="padding: 12px 10px;">
                                 <span style="border: 1px solid ${colorEstado}; color: ${colorEstado}; padding: 3px 10px; border-radius: 12px; font-size: 0.85em;">
@@ -96,7 +98,7 @@ async function cargarTablaDetallada() {
                             </td>
                             <td style="padding: 12px 10px; color: #2ecc71; font-weight: bold;">${monto}</td>
                             <td style="padding: 12px 10px;">
-                                <button onclick="abrirModalRevision(${exp.AjusteID})" style="background-color: var(--primary-color); color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 0.85em; font-weight: bold;">
+                                <button onclick="folioVisualAdmin = ${folioPersonal}; abrirModalRevision(${exp.AjusteID})" style="background-color: var(--primary-color); color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 0.85em; font-weight: bold;">
                                     Revisar y Cerrar
                                 </button>
                             </td>
@@ -108,18 +110,16 @@ async function cargarTablaDetallada() {
                 contenedor.innerHTML += htmlTabla;
             }
         }
-    } catch (error) {
-        console.error("Error al cargar la tabla detallada:", error);
-    }
+    } catch (error) { console.error("Error al cargar la tabla detallada:", error); }
 }
 
-// ==========================================
-// NUEVO MODAL DE REVISIÓN (TURNOS Y RECHAZOS)
-// ==========================================
+let folioVisualAdmin = null;
+
 async function abrirModalRevision(ajusteId) {
     const modal = document.getElementById('modalRevision');
     const contenido = document.getElementById('modalRevisionContenido');
-    document.getElementById('modalRevId').innerText = `#${ajusteId}`;
+
+    document.getElementById('modalRevId').innerText = folioVisualAdmin ? `SIN-${folioVisualAdmin.toString().padStart(3, '0')}` : `#${ajusteId}`;
     modal.style.display = 'flex';
     contenido.innerHTML = '<p style="color: var(--text-muted); text-align: center;">Cargando información del siniestro...</p>';
 
@@ -131,7 +131,17 @@ async function abrirModalRevision(ajusteId) {
             const info = await resInfo.json();
             const colorAlerta = info.penalizado ? '#e74c3c' : '#2ecc71';
 
+            const montoFormateado = info.monto ? new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(info.monto) : '$0.00';
+            const kmsFormateados = info.kilometros ? new Intl.NumberFormat('es-MX').format(info.kilometros) + ' km' : 'N/A';
+
             let html = `
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; background: var(--panel-bg); padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid var(--border-color);">
+                    <div><span style="font-size: 0.8em; color: var(--text-muted);">Lugar (Ciudad/Zona)</span><br><strong style="color: var(--text-color);">${info.lugar || 'N/A'}</strong></div>
+                    <div><span style="font-size: 0.8em; color: var(--text-muted);">Tipo de Seguro</span><br><strong style="color: var(--text-color);">${info.seguro || 'N/A'}</strong></div>
+                    <div><span style="font-size: 0.8em; color: var(--text-muted);">Monto Estimado</span><br><strong style="color: #2ecc71;">${montoFormateado}</strong></div>
+                    <div><span style="font-size: 0.8em; color: var(--text-muted);">Kilometraje</span><br><strong style="color: var(--text-color);">${kmsFormateados}</strong></div>
+                </div>
+
                 <div style="background: var(--bg-color); padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid var(--border-color);">
                     <p style="margin: 0 0 10px 0; font-size: 0.9em; font-weight: bold; color: var(--text-color);">Tiempo y Penalización:</p>
                     <p style="margin: 0 0 15px 0; font-size: 0.85em; color: ${colorAlerta}; font-weight: bold;">${info.alertaUI}</p>
@@ -186,7 +196,7 @@ async function abrirModalRevision(ajusteId) {
                         const esNoRequerido = doc.RutaArchivo === 'NO_REQUERIDO';
                         const nombreArchivo = esNoRequerido ? '<span style="color: #f39c12; font-style: italic;">No requerido para este siniestro</span>' : doc.RutaArchivo.split('\\').pop().split('/').pop();
                         const botonAccion = esNoRequerido
-                            ? `<button onclick="rechazarDocumento(${ajusteId}, '${tipo}')" style="background-color: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 0.75em; font-weight: bold;" title="Si el documento sí se necesita, presiona aquí para que el ajustador pueda subirlo.">Rechazar N/A (Solicitar)</button>`
+                            ? `<button onclick="preguntarAccion(${ajusteId}, '${tipo}', 'rechazar')" style="background-color: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 0.75em; font-weight: bold;">Rechazar N/A (Solicitar)</button>`
                             : `<a href="http://localhost:3000/${doc.RutaArchivo.replace(/\\/g, '/')}" target="_blank" style="background-color: var(--primary-color); color: white; text-decoration: none; padding: 6px 15px; border-radius: 5px; font-size: 0.85em; font-weight: bold;">👁️ Ver archivo</a>`;
 
                         html += `
@@ -214,21 +224,6 @@ async function abrirModalRevision(ajusteId) {
     }
 }
 
-async function rechazarDocumento(ajusteId, tipoDoc) {
-    if(!confirm(`⚠️ ¿Estás seguro de que quieres rechazar el documento ${tipoDoc}? El Ajustador tendrá que subirlo obligatoriamente.`)) return;
-
-    try {
-        const res = await fetch(`http://localhost:3000/api/documentos/rechazar/${ajusteId}/${tipoDoc}`, { method: 'DELETE' });
-        if(res.ok) {
-            alert(`✅ Documento ${tipoDoc} rechazado. Ya se le habilitó la subida al ajustador.`);
-            abrirModalRevision(ajusteId);
-            revisarNotificaciones();
-        }
-    } catch(error) {
-        console.error("Error rechazando doc:", error);
-    }
-}
-
 async function guardarRevision(ajusteId) {
     const nuevoEstado = document.getElementById('estadoRevision').value;
     const comentarioObj = document.getElementById('comentarioRevision');
@@ -246,14 +241,12 @@ async function guardarRevision(ajusteId) {
         });
 
         if (res.ok) {
-            alert("✅ Cambios guardados correctamente.");
+            mostrarToast("Cambios guardados correctamente.", "success");
             cerrarModalRevision();
             cargarTablaDetallada();
             revisarNotificaciones();
         }
-    } catch (error) {
-        console.error("Error guardando revisión:", error);
-    }
+    } catch (error) { console.error("Error guardando revisión:", error); }
 }
 
 function cerrarModalRevision() {
@@ -287,15 +280,13 @@ async function cargarPersonal() {
                         </div>
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <span style="color: ${colorRol}; font-size: 0.8em; font-weight: bold;">${u.Rol}</span>
-                            <button onclick="eliminarUsuario(${u.UsuarioID}, '${u.Nombre}')" style="background: transparent; color: #e74c3c; border: none; cursor: pointer; font-size: 1.1em;" title="Eliminar Empleado">🗑️</button>
+                            <button onclick="preguntarAccion(${u.UsuarioID}, '${u.Nombre}', 'eliminar')" style="background: transparent; color: #e74c3c; border: none; cursor: pointer; font-size: 1.1em;" title="Eliminar Empleado">🗑️</button>
                         </div>
                     </li>
                 `;
             });
         }
-    } catch (error) {
-        console.error("Error al cargar lista de personal:", error);
-    }
+    } catch (error) { console.error("Error al cargar lista de personal:", error); }
 }
 
 document.getElementById('formNuevoUsuario').addEventListener('submit', async (e) => {
@@ -315,65 +306,92 @@ document.getElementById('formNuevoUsuario').addEventListener('submit', async (e)
         });
 
         if (res.ok) {
-            alert(`✅ Empleado registrado.`);
+            mostrarToast("Empleado registrado exitosamente.", "success");
             document.getElementById('formNuevoUsuario').reset();
             ocultarFormularioAlta();
             cargarPersonal();
         } else {
             const errorData = await res.json().catch(() => ({}));
-            alert(`❌ Error al registrar: ${errorData.error || 'Es posible que el correo ya esté registrado.'}`);
+            mostrarToast(`Error al registrar: ${errorData.error || 'Correo ya registrado.'}`, "error");
         }
-    } catch (error) {
-        console.error("Error:", error);
-        alert("❌ Error de conexión con el servidor.");
-    }
+    } catch (error) { console.error("Error:", error); mostrarToast("Error de conexión con el servidor.", "error"); }
 });
 
-async function eliminarUsuario(id, nombre) {
-    if(confirm(`⚠️ ¿Estás seguro de que deseas eliminar permanentemente a ${nombre} del sistema?`)) {
+let accionPendiente = null;
+let idObjetivo = null;
+let datoExtra = null;
+
+function preguntarAccion(id, dato, tipoAccion) {
+    accionPendiente = tipoAccion;
+    idObjetivo = id;
+    datoExtra = dato;
+
+    let texto = "";
+    if (tipoAccion === 'eliminar') texto = `¿Estás seguro de que deseas eliminar permanentemente a ${dato} del sistema?`;
+    if (tipoAccion === 'rechazar') texto = `¿Estás seguro de que quieres rechazar el documento ${dato}? El Ajustador tendrá que subirlo obligatoriamente.`;
+
+    document.getElementById('textoConfirmacion').innerText = texto;
+    document.getElementById('modalConfirmacion').style.display = 'flex';
+}
+
+function cancelarAccion() {
+    document.getElementById('modalConfirmacion').style.display = 'none';
+    accionPendiente = null;
+}
+
+async function confirmarAccion() {
+    document.getElementById('modalConfirmacion').style.display = 'none';
+
+    if (accionPendiente === 'eliminar') {
         try {
-            const res = await fetch(`http://localhost:3000/api/usuarios/${id}`, { method: 'DELETE' });
+            const res = await fetch(`http://localhost:3000/api/usuarios/${idObjetivo}`, { method: 'DELETE' });
             if (res.ok) {
-                alert(`✅ Empleado ${nombre} eliminado.`);
+                mostrarToast(`Empleado ${datoExtra} eliminado.`, "success");
                 cargarPersonal();
-            } else {
-                alert(`❌ No se puede eliminar. Es probable que este ajustador ya tenga expedientes registrados a su nombre.`);
+            } else { mostrarToast("No se puede eliminar. Este usuario ya tiene expedientes.", "error"); }
+        } catch (error) { console.error("Error eliminando:", error); }
+    }
+    else if (accionPendiente === 'rechazar') {
+        try {
+            const res = await fetch(`http://localhost:3000/api/documentos/rechazar/${idObjetivo}/${datoExtra}`, { method: 'DELETE' });
+            if(res.ok) {
+                mostrarToast(`Documento ${datoExtra} rechazado.`, "success");
+                abrirModalRevision(idObjetivo);
+                revisarNotificaciones();
             }
-        } catch (error) {
-            console.error("Error eliminando:", error);
-        }
+        } catch(error) { console.error("Error rechazando doc:", error); }
     }
 }
 
 // ==========================================
-// 3. EXCEL Y GRÁFICAS
+// 3. EXCEL Y GRÁFICAS (NUEVO EXCELJS)
 // ==========================================
 async function exportarExcel() {
     try {
-        const res = await fetch('http://localhost:3000/api/lista-expedientes');
+        mostrarToast("⏳ Generando archivo Excel con diseño...", "info");
+
+        const res = await fetch('http://localhost:3000/api/exportar-excel');
+
         if (res.ok) {
-            const expedientes = await res.json();
-            let csvContent = "data:text/csv;charset=utf-8,\ufeffID Ajuste,Lugar,Tipo de Seguro,Fecha del Accidente,Estado Actual,Asignado A,Monto Estimado\n";
+            // Recibimos el archivo binario (.xlsx)
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
 
-            expedientes.forEach(row => {
-                const fecha = new Date(row.FechaOcurrencia).toLocaleDateString('es-MX');
-                const ajustador = row.AjustadorNombre || 'Sin asignar';
-                const lugar = row.Lugar || 'N/A';
-                const seguro = row.Seguro || 'N/A';
-                const monto = row.Monto || '0';
-                csvContent += `${row.AjusteID},"${lugar}","${seguro}",${fecha},${row.Estado},"${ajustador}",${monto}\n`;
-            });
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `Reporte_Detallado_ASPV_${new Date().toLocaleDateString('es-MX')}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
 
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `Reporte_General_ASPV_${new Date().toLocaleDateString('es-MX')}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            mostrarToast("✅ Exportación a Excel completada.", "success");
+        } else {
+            mostrarToast("❌ Error al generar el Excel en el servidor.", "error");
         }
     } catch (error) {
         console.error("Error exportando a Excel:", error);
+        mostrarToast("❌ Error de red al intentar descargar.", "error");
     }
 }
 
@@ -417,35 +435,19 @@ async function inicializarGraficas() {
             },
             options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
         });
-    } catch (error) {
-        console.error("Error al cargar gráfica real:", error);
-    }
+    } catch (error) { console.error("Error al cargar gráfica real:", error); }
 }
 
 // ==========================================
-// 4. ACCESIBILIDAD
+// 4. ACCESIBILIDAD Y NOTIFICACIONES
 // ==========================================
-function cambiarTema(tema) {
-    if (tema === 'dark') {
-        document.documentElement.setAttribute('data-theme', 'dark');
-    } else {
-        document.documentElement.removeAttribute('data-theme');
-    }
-}
+function cambiarTema(tema) { document.documentElement.setAttribute('data-theme', tema === 'dark' ? 'dark' : ''); }
+function cambiarTexto(tamano) { document.documentElement.setAttribute('data-text', tamano); }
 
-function cambiarTexto(tamano) {
-    document.documentElement.setAttribute('data-text', tamano);
-}
-
-// ==========================================
-// 5. SISTEMA REAL DE NOTIFICACIONES
-// ==========================================
 async function revisarNotificaciones() {
     const rol = localStorage.getItem('aspv_rol');
     const idUsuario = localStorage.getItem('aspv_id') || 0;
-
     if (!rol) return;
-
     try {
         const res = await fetch(`http://localhost:3000/api/notificaciones/${rol}/${idUsuario}`);
         if (res.ok) {
@@ -455,26 +457,12 @@ async function revisarNotificaciones() {
 
             if (badge && listaUI) {
                 if (datos.pendientes > 0) {
-                    badge.innerText = datos.pendientes;
-                    badge.style.display = 'block';
-
-                    // Limpiamos la lista antes de volverla a llenar
-                    listaUI.innerHTML = '';
-
+                    badge.innerText = datos.pendientes; badge.style.display = 'block'; listaUI.innerHTML = '';
                     datos.detalle.forEach(noti => {
                         const fecha = new Date(noti.Fecha).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-
-                        // Creamos el elemento de la lista dinámicamente para que se acumulen bien
                         const li = document.createElement('li');
                         li.style.cssText = 'padding: 15px; border-bottom: 1px solid var(--border-color); display: flex; gap: 15px; align-items: flex-start; transition: background 0.2s;';
-                        li.innerHTML = `
-                            <div style="font-size: 1.5em; flex-shrink: 0;">💬</div>
-                            <div style="flex-grow: 1;">
-                                <p style="margin: 0 0 5px 0; font-size: 0.9em; color: var(--text-color);"><strong>${noti.Remitente}</strong> ${noti.Mensaje}</p>
-                                <span style="font-size: 0.75em; color: var(--text-muted);">${fecha}</span>
-                            </div>
-                            <div class="punto-azul" style="width: 10px; height: 10px; background-color: var(--primary-color); border-radius: 50%; margin-top: 5px; flex-shrink: 0;"></div>
-                        `;
+                        li.innerHTML = `<div style="font-size: 1.5em; flex-shrink: 0;">💬</div><div style="flex-grow: 1;"><p style="margin: 0 0 5px 0; font-size: 0.9em; color: var(--text-color);"><strong>${noti.Remitente}</strong> ${noti.Mensaje}</p><span style="font-size: 0.75em; color: var(--text-muted);">${fecha}</span></div><div class="punto-azul" style="width: 10px; height: 10px; background-color: var(--primary-color); border-radius: 50%; margin-top: 5px; flex-shrink: 0;"></div>`;
                         listaUI.appendChild(li);
                     });
                 } else {
@@ -483,12 +471,16 @@ async function revisarNotificaciones() {
                 }
             }
         }
-    } catch (error) {
-        console.error("Esperando backend...", error);
-    }
+    } catch (error) {}
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById('nombreUsuarioUI').innerText = `Hola, ${nombreUsuario}`;
+    cargarMetricas();
+    cargarPersonal();
+    cargarTablaDetallada();
+    inicializarGraficas();
+
     const marcarBtn = document.getElementById('marcarLeidasBtn');
     if (marcarBtn) {
         marcarBtn.addEventListener('click', async () => {

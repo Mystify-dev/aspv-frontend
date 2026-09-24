@@ -144,6 +144,7 @@
                         </div>
                     </div>
 
+                    <!-- NUEVA Fila 3: Póliza, Seguro, Monto y KM -->
                     <div style="display: flex; gap: 10px;">
                         <div style="flex: 1;">
                             <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold;">Póliza</label>
@@ -161,6 +162,10 @@
                         <div style="flex: 1;">
                             <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold;">Monto Est. ($)</label>
                             <input type="number" id="montoSiniestro" placeholder="0.00" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); margin-top: 5px; box-sizing: border-box;">
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold;">Kilometraje (km)</label>
+                            <input type="number" id="kmSiniestro" placeholder="Ej. 45000" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); margin-top: 5px; box-sizing: border-box;">
                         </div>
                     </div>
 
@@ -273,6 +278,9 @@
         }
     });
 </script>
+
+<!-- Contenedor para Notificaciones Toast -->
+<div id="toast-container"></div>
 
 </body>
 </html>
