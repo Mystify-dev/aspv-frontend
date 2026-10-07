@@ -44,16 +44,37 @@ function cerrarSesion() {
 // ==========================================
 // 1. ACCESIBILIDAD
 // ==========================================
-function cambiarTema(tema) {
-    if (tema === 'dark') {
+function aplicarPreferencias() {
+    const temaGuardado = localStorage.getItem('aspv_tema');
+    const textoGuardado = localStorage.getItem('aspv_texto');
+
+    if (temaGuardado === 'dark') {
         document.documentElement.setAttribute('data-theme', 'dark');
     } else {
         document.documentElement.removeAttribute('data-theme');
+    }
+
+    if (textoGuardado) {
+        document.documentElement.setAttribute('data-text', textoGuardado);
+    }
+}
+
+// Se ejecuta inmediatamente para evitar el "parpadeo blanco" al cambiar de pestaña
+aplicarPreferencias();
+
+function cambiarTema(tema) {
+    if (tema === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        localStorage.setItem('aspv_tema', 'dark');
+    } else {
+        document.documentElement.removeAttribute('data-theme');
+        localStorage.setItem('aspv_tema', 'light');
     }
 }
 
 function cambiarTexto(tamano) {
     document.documentElement.setAttribute('data-text', tamano);
+    localStorage.setItem('aspv_texto', tamano);
 }
 
 // ==========================================
