@@ -52,9 +52,16 @@ function inicializarCalendario() {
                     if (exp.Estado === 'En Análisis') colorEvento = '#f39c12'; // Naranja
 
                     return {
-                        title: `Exp #${exp.AjusteID} - ${exp.Estado}`,
+                        id: exp.AjusteID,
+                        title: `SIN-${String(exp.AjusteID).padStart(3, '0')} - ${exp.Lugar}`,
                         start: exp.FechaOcurrencia.split('T')[0], // Cortamos la hora para que agarre solo la fecha
-                        backgroundColor: colorEvento
+                        backgroundColor: colorEvento,
+                        borderColor: colorEvento,
+                        extendedProps: {
+                            estado: exp.Estado,
+                            seguro: exp.Seguro,
+                            ajustador: exp.AjustadorNombre
+                        }
                     };
                 });
 
@@ -63,9 +70,18 @@ function inicializarCalendario() {
                 console.error("Error al cargar eventos:", error);
                 failureCallback(error);
             }
-        }
+        },
+        eventClick: function(info) {
+            // Acción al hacer clic en un evento
+            const props = info.event.extendedProps;
+            alert(`Detalles del Siniestro:\n\nFolio: ${info.event.title}\nEstado: ${props.estado}\nAseguradora: ${props.seguro}\nAjustador: ${props.ajustador}`);
+        },
+        height: 'auto', // Se adapta al contenido
+        contentHeight: 600,
+        firstDay: 1 // La semana empieza en Lunes
     });
 
+    window.calendarioASPV = calendar; // Guardamos en window para poder repintarlo
     calendar.render();
 }
 
@@ -97,6 +113,10 @@ function cambiarTema(tema) {
     } else {
         document.documentElement.removeAttribute('data-theme');
         localStorage.setItem('aspv_tema', 'light');
+    }
+    // Forzamos al calendario a redibujarse para que adapte los colores
+    if (window.calendarioASPV) {
+        window.calendarioASPV.render();
     }
 }
 

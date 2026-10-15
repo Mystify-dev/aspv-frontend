@@ -43,9 +43,11 @@ document.getElementById('formLogin').addEventListener('submit', async (e) => {
             localStorage.setItem('aspv_rol', datos.usuario.Rol);
             localStorage.setItem('aspv_id', datos.usuario.UsuarioID);
 
-            // EL ENRUTADOR INTELIGENTE (Redirección fluida sin alertas):
+            // EL ENRUTADOR INTELIGENTE (Actualizado con Analista de Pagos):
             if (datos.usuario.Rol === 'Admin') {
                 window.location.href = 'admin.html'; // Gerencia va al panel general
+            } else if (datos.usuario.Rol === 'Analista de Pagos') {
+                window.location.href = 'pagos.html'; // El nuevo rol va a su panel de nómina
             } else if (datos.usuario.Rol === 'Analista') {
                 window.location.href = 'resumen.html'; // Analistas van directo a la revisión
             } else {

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASPV - Panel de Pagos y Nómina</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Menú Lateral -->
+<aside class="sidebar">
+    <img src="imagenes/LogoASPV.jpg" alt="Logo ASPV" style="width: 110px; margin-bottom: 15px; margin-top: 5px; border-radius: 12px;">
+    <p style="color: var(--text-muted); font-size: 0.9em; margin-bottom: 40px;">GESTIÓN DE SINIESTROS</p>
+
+    <nav style="display: flex; flex-direction: column; gap: 15px;" id="navMenu">
+        <strong>Menú Principal</strong>
+
+        <!-- Enlaces -->
+        <a href="admin.html" id="btnAdmin" style="display: none; color: var(--text-color); text-decoration: none;">⚙️ Gerencia y Usuarios</a>
+        <a href="resumen.html" id="btnAnalista" style="display: none; color: var(--text-color); text-decoration: none;">📊 Panel de Análisis</a>
+        <a href="pagos.html" id="btnPagos" style="display: none; color: var(--text-color); text-decoration: none;">💰 Panel de Pagos</a>
+        <a href="index.html" id="btnAjustador" style="display: none; color: var(--text-color); text-decoration: none;">📁 Mis Expedientes</a>
+        <a href="calendario.html" id="btnCalendario" style="display: none; color: var(--text-color); text-decoration: none;">📅 Calendario</a>
+
+        <!-- NUEVO: Enlace al Muro Global -->
+        <a href="muro.html" id="btnMuro" style="display: none; color: var(--text-color); text-decoration: none;">🌐 Muro Global</a>
+
+        <!-- Script inteligente que muestra solo lo permitido según el rol -->
+        <script>
+            const rolActual = localStorage.getItem('aspv_rol');
+
+            // TODOS los roles pueden ver el muro
+            if(document.getElementById('btnMuro')) {
+                document.getElementById('btnMuro').style.display = 'block';
+            }
+
+            if (rolActual === 'Admin') {
+                document.getElementById('btnAdmin').style.display = 'block';
+                document.getElementById('btnAnalista').style.display = 'block';
+                document.getElementById('btnPagos').style.display = 'block';
+                document.getElementById('btnCalendario').style.display = 'block';
+            } else if (rolActual === 'Analista') {
+                document.getElementById('btnAnalista').style.display = 'block';
+                document.getElementById('btnCalendario').style.display = 'block';
+            } else if (rolActual === 'Analista de Pagos') {
+                document.getElementById('btnPagos').style.display = 'block';
+                document.getElementById('btnCalendario').style.display = 'block';
+            } else if (rolActual === 'Ajustador') {
+                document.getElementById('btnAjustador').style.display = 'block';
+                document.getElementById('btnCalendario').style.display = 'block';
+            }
+
+            // Resalta en azul la página actual automáticamente
+            const urlActual = window.location.pathname.split('/').pop() || 'index.html';
+            document.querySelectorAll('#navMenu a').forEach(enlace => {
+                if (enlace.getAttribute('href') === urlActual) {
+                    enlace.style.color = 'var(--primary-color)';
+                    enlace.style.fontWeight = 'bold';
+                }
+            });
+        </script>
+
+        <!-- Controles de Accesibilidad -->
+        <div style="margin-top: 40px;">
+            <p style="font-size: 0.8em; color: var(--text-muted); margin-bottom: 8px;">Apariencia:</p>
+            <div style="display: flex; gap: 5px;">
+                <button onclick="cambiarTema('light')" style="cursor: pointer; padding: 5px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-color);">☀️</button>
+                <button onclick="cambiarTema('dark')" style="cursor: pointer; padding: 5px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-color);">🌙</button>
+                <button onclick="cambiarTexto('normal')" style="cursor: pointer; padding: 5px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-color); font-weight: bold;">A</button>
+                <button onclick="cambiarTexto('grande')" style="cursor: pointer; padding: 5px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-color); font-weight: bold;">A+</button>
+            </div>
+        </div>
+    </nav>
+</aside>
+
+<!-- Contenido Principal -->
+<main class="main-content">
+    <header class="topbar">
+        <!-- Grupo de Filtros Avanzados Compacto -->
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; flex: 1;">
+
+            <input type="text" id="buscadorPagos" onkeyup="filtrarCajasVisuales()" placeholder="🔍 Buscar ID, Fecha..." style="padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--panel-bg); color: var(--text-color); width: 180px;">
+
+            <input type="month" id="filtroMes" onchange="cargarTablaPagos()" style="padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--panel-bg); color: var(--text-color); font-weight: bold;" title="Selecciona un mes y año">
+
+            <select id="filtroQuincena" onchange="cargarTablaPagos()" style="padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--panel-bg); color: var(--text-color); font-weight: bold;">
+                <option value="Todas">📅 Quincenas</option>
+                <option value="1ra">1ra (1-15)</option>
+                <option value="2da">2da (16-31)</option>
+            </select>
+
+            <select id="filtroEstadoPagos" onchange="filtrarCajasVisuales()" style="padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--panel-bg); color: var(--text-color); font-weight: bold;">
+                <option value="">📋 Estados</option>
+                <option value="En Análisis">🟠 Análisis</option>
+                <option value="En Ajuste">🔵 Ajuste</option>
+                <option value="Concluido">🟢 Concluido</option>
+            </select>
+
+            <!-- Botón para ver todo el historial rápido (Icono) -->
+            <button onclick="limpiarFiltros()" title="Limpiar todos los filtros" style="padding: 8px 12px; border-radius: 6px; border: none; background: var(--primary-color); color: white; cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center;">
+                🔄
+            </button>
+        </div>
+
+        <!-- PERFIL DE USUARIO DINÁMICO -->
+        <div class="user-profile" style="display: flex; align-items: center; gap: 15px; margin-left: auto;">
+            <strong id="nombreUsuarioUI" style="white-space: nowrap;">Hola, Cargando...</strong>
+            <button onclick="cerrarSesion()" style="background-color: #e74c3c; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s; white-space: nowrap;">Salir 🚪</button>
+        </div>
+    </header>
+
+    <div class="dashboard">
+        <h1 style="margin-top: 0;">Panel de Pagos y Nómina</h1>
+        <p style="color: var(--text-muted);">Monitorea los siniestros concluidos por cada ajustador y el cálculo de su quincena ($230 fijos por siniestro).</p>
+
+        <!-- Tarjetas KPI de Pagos -->
+        <div class="kpi-grid">
+            <div class="card">
+                <h4 style="margin: 0; color: var(--text-muted);">Expedientes Activos</h4>
+                <h2 id="kpiActivos" style="margin: 10px 0; color: #f39c12;">--</h2>
+                <p style="margin: 0; font-size: 0.85em; color: var(--text-muted);">Aún no generan pago</p>
+            </div>
+
+            <div class="card">
+                <h4 style="margin: 0; color: var(--text-muted);">Siniestros Concluidos</h4>
+                <h2 id="kpiConcluidos" style="margin: 10px 0; color: #2ecc71;">--</h2>
+                <p style="margin: 0; font-size: 0.85em; color: var(--text-muted);">Listos para pago</p>
+            </div>
+
+            <div class="card" style="border: 1px solid #2ecc7150;">
+                <h4 style="margin: 0; color: var(--text-muted);">Nómina Global Aprox.</h4>
+                <h2 id="kpiTotalPagos" style="margin: 10px 0; color: #2ecc71;">$0.00</h2>
+                <p style="margin: 0; font-size: 0.85em; color: var(--text-muted);">Suma total de comisiones</p>
+            </div>
+        </div>
+
+        <!-- Bandeja de Pagos -->
+        <div class="card" style="margin-top: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px;">
+                <div>
+                    <h3 style="margin: 0;">Auditoría de Siniestros y Comisiones</h3>
+                    <p style="color: var(--text-muted); font-size: 0.9em; margin-top: 5px; margin-bottom: 0;">Modo lectura: Verifica los expedientes para autorizar los pagos correspondientes.</p>
+                </div>
+                <button onclick="exportarExcel()" style="background-color: #2ecc71; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 8px; font-size: 0.9em; transition: 0.3s;">
+                    📊 Exportar a Excel
+                </button>
+            </div>
+
+            <div id="contenedorTablasPagos" style="overflow-x: auto; margin-top: 15px;">
+                <!-- JS inyectará aquí -->
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Modal de Solo Lectura -->
+<div id="modalPagos" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center;">
+    <div class="card" style="width: 550px; max-width: 90%; background: var(--panel-bg); border-radius: 12px; padding: 20px; position: relative;">
+        <button onclick="cerrarModalPagos()" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.2em; color: var(--text-color); cursor: pointer;">✖</button>
+
+        <h3 style="margin-top: 0;">Expediente <span id="modalPagosExpId" style="color: var(--primary-color);"></span></h3>
+        <p style="color: var(--text-muted); font-size: 0.9em; margin-top: -10px;">Auditoría de documentos (Modo lectura).</p>
+        <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 15px 0;">
+
+        <div id="modalPagosContenido" style="display: flex; flex-direction: column; gap: 10px;">
+            <!-- Contenido inyectado por JS -->
+        </div>
+    </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="pagos.js"></script>
+
+</body>
+</html>

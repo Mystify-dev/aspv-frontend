@@ -43,23 +43,37 @@
         <!-- Enlaces ocultos por defecto -->
         <a href="admin.html" id="btnAdmin" style="display: none; color: var(--text-color); text-decoration: none;">⚙️ Gerencia y Usuarios</a>
         <a href="resumen.html" id="btnAnalista" style="display: none; color: var(--text-color); text-decoration: none;">📊 Panel de Análisis</a>
+        <a href="pagos.html" id="btnPagos" style="display: none; color: var(--text-color); text-decoration: none;">💰 Panel de Pagos</a>
         <a href="index.html" id="btnAjustador" style="display: none; color: var(--text-color); text-decoration: none;">📁 Mis Expedientes</a>
+
+        <!-- NUEVO: Enlace al Muro Global -->
+        <a href="muro.html" id="btnMuro" style="display: none; color: var(--text-color); text-decoration: none;">🌐 Muro Global</a>
+
         <a href="calendario.html" id="btnCalendario" style="display: none; color: var(--text-color); text-decoration: none;">📅 Calendario</a>
 
         <!-- Script inteligente que muestra solo lo permitido según el rol -->
         <script>
             const rolActual = localStorage.getItem('aspv_rol');
 
+            // TODOS los roles pueden ver el muro
+            if(document.getElementById('btnMuro')) {
+                document.getElementById('btnMuro').style.display = 'block';
+            }
+
             if (rolActual === 'Admin') {
-                document.getElementById('btnAdmin').style.display = 'block';
-                document.getElementById('btnAnalista').style.display = 'block';
-                document.getElementById('btnCalendario').style.display = 'block';
+                if(document.getElementById('btnAdmin')) document.getElementById('btnAdmin').style.display = 'block';
+                if(document.getElementById('btnAnalista')) document.getElementById('btnAnalista').style.display = 'block';
+                if(document.getElementById('btnPagos')) document.getElementById('btnPagos').style.display = 'block';
+                if(document.getElementById('btnCalendario')) document.getElementById('btnCalendario').style.display = 'block';
             } else if (rolActual === 'Analista') {
-                document.getElementById('btnAnalista').style.display = 'block';
-                document.getElementById('btnCalendario').style.display = 'block';
+                if(document.getElementById('btnAnalista')) document.getElementById('btnAnalista').style.display = 'block';
+                if(document.getElementById('btnCalendario')) document.getElementById('btnCalendario').style.display = 'block';
+            } else if (rolActual === 'Analista de Pagos') {
+                if(document.getElementById('btnPagos')) document.getElementById('btnPagos').style.display = 'block';
+                if(document.getElementById('btnCalendario')) document.getElementById('btnCalendario').style.display = 'block';
             } else if (rolActual === 'Ajustador') {
-                document.getElementById('btnAjustador').style.display = 'block';
-                document.getElementById('btnCalendario').style.display = 'block';
+                if(document.getElementById('btnAjustador')) document.getElementById('btnAjustador').style.display = 'block';
+                if(document.getElementById('btnCalendario')) document.getElementById('btnCalendario').style.display = 'block';
             }
 
             // Resalta en azul la página actual automáticamente

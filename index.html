@@ -17,10 +17,20 @@
         <a href="admin.html" id="btnAdmin" style="display: none; color: var(--text-color); text-decoration: none;">⚙️ Gerencia y Usuarios</a>
         <a href="resumen.html" id="btnAnalista" style="display: none; color: var(--text-color); text-decoration: none;">📊 Panel de Análisis</a>
         <a href="index.html" id="btnAjustador" style="display: none; color: var(--text-color); text-decoration: none;">📁 Mis Expedientes</a>
+
+        <!-- NUEVO: Enlace al Muro Global -->
+        <a href="muro.html" id="btnMuro" style="display: none; color: var(--text-color); text-decoration: none;">🌐 Muro Global</a>
+
         <a href="calendario.html" id="btnCalendario" style="display: none; color: var(--text-color); text-decoration: none;">📅 Calendario</a>
 
         <script>
             const rolActual = localStorage.getItem('aspv_rol');
+
+            // TODOS los roles pueden ver el muro
+            if(document.getElementById('btnMuro')) {
+                document.getElementById('btnMuro').style.display = 'block';
+            }
+
             if (rolActual === 'Admin') {
                 document.getElementById('btnAdmin').style.display = 'block';
                 document.getElementById('btnAnalista').style.display = 'block';
@@ -144,7 +154,7 @@
                         </div>
                     </div>
 
-                    <!-- NUEVA Fila 3: Póliza, Seguro, Monto y KM -->
+                    <!-- Fila 3: Póliza, Seguro, Monto y KM -->
                     <div style="display: flex; gap: 10px;">
                         <div style="flex: 1;">
                             <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold;">Póliza</label>
@@ -153,10 +163,14 @@
                         <div style="flex: 1;">
                             <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold;">Tipo Seguro</label>
                             <select id="tipoSeguro" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); margin-top: 5px; box-sizing: border-box;">
-                                <option value="Automóvil">Automóvil</option>
-                                <option value="Hogar">Hogar</option>
-                                <option value="Responsabilidad Civil">Responsabilidad Civil</option>
-                                <option value="Viaje">Viaje</option>
+                                <option value="Inbursa">Inbursa</option>
+                                <option value="AIG">AIG</option>
+                                <option value="Azteca">Azteca</option>
+                                <option value="HDI">HDI</option>
+                                <option value="ANA SEGUROS">ANA SEGUROS</option>
+                                <option value="Crabi">Crabi</option>
+                                <option value="General de Seguros">General de Seguros</option>
+                                <option value="Spt seguros">Spt seguros</option>
                             </select>
                         </div>
                         <div style="flex: 1;">

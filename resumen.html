@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ASPV - Panel de Análisis</title>
+    <title>ASPV - Panel de Análisis y Pagos</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -13,7 +13,6 @@
     <img src="imagenes/LogoASPV.jpg" alt="Logo ASPV" style="width: 110px; margin-bottom: 15px; margin-top: 5px; border-radius: 12px;">
     <p style="color: var(--text-muted); font-size: 0.9em; margin-bottom: 40px;">GESTIÓN DE SINIESTROS</p>
 
-    <!-- Eliminamos el height:100% y dejamos que el contenido dicte el espacio -->
     <nav style="display: flex; flex-direction: column; gap: 15px;" id="navMenu">
         <strong>Menú Principal</strong>
 
@@ -21,19 +20,31 @@
         <a href="admin.html" id="btnAdmin" style="display: none; color: var(--text-color); text-decoration: none;">⚙️ Gerencia y Usuarios</a>
         <a href="resumen.html" id="btnAnalista" style="display: none; color: var(--text-color); text-decoration: none;">📊 Panel de Análisis</a>
         <a href="index.html" id="btnAjustador" style="display: none; color: var(--text-color); text-decoration: none;">📁 Mis Expedientes</a>
+
+        <!-- NUEVO: Enlace al Muro Global -->
+        <a href="muro.html" id="btnMuro" style="display: none; color: var(--text-color); text-decoration: none;">🌐 Muro Global</a>
+
         <a href="calendario.html" id="btnCalendario" style="display: none; color: var(--text-color); text-decoration: none;">📅 Calendario</a>
 
         <!-- Script inteligente que muestra solo lo permitido según el rol -->
         <script>
             const rolActual = localStorage.getItem('aspv_rol');
 
+            // NUEVO: TODOS los roles pueden ver el muro
+            if(document.getElementById('btnMuro')) {
+                document.getElementById('btnMuro').style.display = 'block';
+            }
+
             if (rolActual === 'Admin') {
                 document.getElementById('btnAdmin').style.display = 'block';
                 document.getElementById('btnAnalista').style.display = 'block';
                 document.getElementById('btnCalendario').style.display = 'block';
-            } else if (rolActual === 'Analista') {
+            } else if (rolActual === 'Analista' || rolActual === 'Analista de Pagos') {
                 document.getElementById('btnAnalista').style.display = 'block';
                 document.getElementById('btnCalendario').style.display = 'block';
+                if (rolActual === 'Analista de Pagos') {
+                    document.getElementById('btnAnalista').innerText = '💰 Panel de Pagos';
+                }
             } else if (rolActual === 'Ajustador') {
                 document.getElementById('btnAjustador').style.display = 'block';
                 document.getElementById('btnCalendario').style.display = 'block';
@@ -79,33 +90,23 @@
 
         <div style="flex: 1;"></div>
 
-        <!-- SECCIÓN MODIFICADA: Campana y Panel de Notificaciones Flotante -->
+        <!-- Campana y Panel de Notificaciones Flotante -->
         <div style="display: flex; align-items: center; gap: 20px; position: relative;">
 
-            <!-- Contenedor de la Campana -->
             <div id="contenedorCampana" style="position: relative; cursor: pointer; display: flex; align-items: center;" title="Notificaciones">
                 <span style="font-size: 1.5em;">🔔</span>
-                <span id="badgeNotificaciones" style="display: block; position: absolute; top: -5px; right: -8px; background: #e74c3c; color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.7em; font-weight: bold; border: 2px solid var(--panel-bg);">1</span>
+                <span id="badgeNotificaciones" style="display: none; position: absolute; top: -5px; right: -8px; background: #e74c3c; color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.7em; font-weight: bold; border: 2px solid var(--panel-bg);">0</span>
             </div>
 
             <!-- Panel Flotante Oculto -->
             <div id="panelNotificaciones" style="display: none; position: absolute; top: 45px; right: 120px; width: 350px; background-color: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 8px 16px rgba(0,0,0,0.4); z-index: 1000; overflow: hidden;">
-
                 <div style="padding: 15px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background-color: var(--bg-color);">
                     <h3 style="margin: 0; font-size: 1.1em; color: var(--text-color);">Notificaciones</h3>
                     <button id="marcarLeidasBtn" style="background: transparent; color: var(--primary-color); border: none; cursor: pointer; font-size: 0.85em; font-weight: bold;">Marcar leídas</button>
                 </div>
 
                 <ul id="listaNotificacionesUI" style="list-style: none; margin: 0; padding: 0; max-height: 300px; overflow-y: auto;">
-                    <!-- Notificación simulada para que veas el diseño -->
-                    <li style="padding: 15px; border-bottom: 1px solid var(--border-color); display: flex; gap: 15px; align-items: flex-start; cursor: pointer; transition: background 0.2s;">
-                        <div style="font-size: 1.5em;">💬</div>
-                        <div>
-                            <p style="margin: 0 0 5px 0; font-size: 0.9em; color: var(--text-color);"><strong>Ajustador Juan</strong> respondió al Expediente <strong>#1</strong>.</p>
-                            <span style="font-size: 0.75em; color: var(--text-muted);">Hace 2 min</span>
-                        </div>
-                        <div class="punto-azul" style="width: 10px; height: 10px; background-color: var(--primary-color); border-radius: 50%; margin-top: 5px;"></div>
-                    </li>
+                    <li style="padding: 15px; text-align: center; color: var(--text-muted); font-size: 0.9em;">No tienes notificaciones nuevas</li>
                 </ul>
 
                 <div style="padding: 10px; text-align: center; border-top: 1px solid var(--border-color); background-color: var(--bg-color);">
@@ -122,8 +123,8 @@
     </header>
 
     <div class="dashboard">
-        <h1 style="margin-top: 0;">Panel de Administración y Revisión</h1>
-        <p style="color: var(--text-muted);">Monitorea los KPIs globales y autoriza el cierre de siniestros.</p>
+        <h1 id="tituloPanelUI" style="margin-top: 0;">Panel de Administración y Revisión</h1>
+        <p id="subtituloPanelUI" style="color: var(--text-muted);">Monitorea los KPIs globales y autoriza el cierre de siniestros.</p>
 
         <!-- Tarjetas Superiores (KPIs de Oficina) -->
         <div class="kpi-grid">
@@ -144,14 +145,21 @@
                 <h2 id="kpiDocs" style="margin: 10px 0; color: #e74c3c;">--</h2>
                 <p style="margin: 0; font-size: 0.85em; color: var(--text-muted);">Archivos por subir al sistema</p>
             </div>
+
+            <!-- TARJETA: Total Quincena (Visible para Analista de Pagos y Admin) -->
+            <div class="card" id="cardKpiPagos" style="display: none; border: 1px solid #2ecc7150;">
+                <h4 style="margin: 0; color: var(--text-muted);">Nómina Quincenal Aprox.</h4>
+                <h2 id="kpiTotalPagos" style="margin: 10px 0; color: #2ecc71;">$0.00</h2>
+                <p style="margin: 0; font-size: 0.8em; color: var(--text-muted);">$230 / Concluido + $3 / km</p>
+            </div>
         </div>
 
         <!-- Bandeja de Revisión -->
         <div class="card" style="margin-top: 20px;">
             <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px;">
                 <div>
-                    <h3 style="margin: 0;">Bandeja de Revisión y Cierre</h3>
-                    <p style="color: var(--text-muted); font-size: 0.9em; margin-top: 5px; margin-bottom: 0;">Selecciona un expediente para revisar su documentación y cambiar su estado.</p>
+                    <h3 id="tituloBandejaUI" style="margin: 0;">Bandeja de Revisión y Cierre</h3>
+                    <p id="subtituloBandejaUI" style="color: var(--text-muted); font-size: 0.9em; margin-top: 5px; margin-bottom: 0;">Selecciona un expediente para revisar su documentación y cambiar su estado.</p>
                 </div>
                 <button onclick="exportarExcel()" style="background-color: #2ecc71; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 8px; font-size: 0.9em; transition: 0.3s;">
                     📊 Exportar a Excel
@@ -159,25 +167,25 @@
             </div>
 
             <div id="contenedorTablasSiniestros" style="overflow-x: auto; margin-top: 15px;">
-                <!-- JavaScript inyectará las tablas separadas por ajustador aquí -->
+                <!-- JavaScript inyectará las tablas y el resumen de pagos por ajustador aquí -->
             </div>
         </div>
     </div>
 </main>
 
-<!-- Librerías para generar PDF mágicamente desde el navegador -->
+<!-- Librerías para generar PDF -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 
 <script src="resumen.js"></script>
 
-<!-- Modal del Administrador (Para revisar y cambiar estado) -->
+<!-- Modal de Revisión / Consulta -->
 <div id="modalAdmin" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center;">
     <div class="card" style="width: 550px; max-width: 90%; background: var(--panel-bg); border-radius: 12px; padding: 20px; position: relative;">
         <button onclick="cerrarModalAdmin()" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.2em; color: var(--text-color); cursor: pointer;">✖</button>
 
-        <h3 style="margin-top: 0;">Revisión - Expediente <span id="modalAdminExpId" style="color: var(--primary-color);"></span></h3>
-        <p style="color: var(--text-muted); font-size: 0.9em; margin-top: -10px;">Validación de documentos y control de estado.</p>
+        <h3 style="margin-top: 0;">Expediente <span id="modalAdminExpId" style="color: var(--primary-color);"></span></h3>
+        <p style="color: var(--text-muted); font-size: 0.9em; margin-top: -10px;">Detalle de siniestro y verificación de documentos.</p>
         <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 15px 0;">
 
         <div id="modalAdminContenido" style="display: flex; flex-direction: column; gap: 10px;">
@@ -194,20 +202,17 @@
         const marcarBtn = document.getElementById('marcarLeidasBtn');
         const badge = document.getElementById('badgeNotificaciones');
 
-        // Mostrar/Ocultar Panel al presionar la campana
         campana.addEventListener('click', (e) => {
             e.stopPropagation();
             panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
         });
 
-        // Ocultar panel si haces clic afuera de él
         document.addEventListener('click', (e) => {
             if (panel.style.display === 'block' && !panel.contains(e.target) && !campana.contains(e.target)) {
                 panel.style.display = 'none';
             }
         });
 
-        // Simular "Marcar como leídas"
         marcarBtn.addEventListener('click', () => {
             badge.style.display = 'none';
             document.querySelectorAll('.punto-azul').forEach(punto => punto.style.display = 'none');
@@ -215,8 +220,7 @@
     });
 </script>
 
-<!-- Contenedor para Notificaciones Toast -->
-
+<!-- Modal de Confirmación -->
 <div id="modalConfirmacion" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 10000; justify-content: center; align-items: center;">
     <div class="card" style="width: 400px; background: var(--panel-bg); border-radius: 12px; padding: 20px; text-align: center;">
         <h3 style="margin-top: 0; color: #e74c3c;">⚠️ Confirmar Acción</h3>
@@ -228,6 +232,7 @@
     </div>
 </div>
 
+<!-- Contenedor para Notificaciones Toast -->
 <div id="toast-container"></div>
 
 </body>

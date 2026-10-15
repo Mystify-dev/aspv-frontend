@@ -45,7 +45,6 @@ function aplicarPreferencias() {
     }
 }
 
-// Se ejecuta inmediatamente para evitar el "parpadeo blanco" al cambiar de pestaña
 aplicarPreferencias();
 
 function cambiarTema(tema) {
@@ -118,7 +117,8 @@ async function cargarTablaAdmin() {
                 `;
 
                 lista.forEach((exp, index) => {
-                    const folioPersonal = lista.length - index;
+                    const folioPersonal = exp.AjusteID || (index + 1);
+
                     const fecha = new Date(exp.FechaOcurrencia).toLocaleDateString('es-MX');
                     let colorEstado = exp.Estado === 'Concluido' ? '#2ecc71' : (exp.Estado === 'En Análisis' ? '#f39c12' : '#3498db');
                     const lugar = exp.Lugar || 'N/A';
@@ -171,6 +171,7 @@ async function evaluarExpediente(ajusteId, borradorTexto = '') {
 
         let htmlContenido = '';
         let esConcluido = false;
+        let urlsParaDescargar = []; // Almacenaremos las URLs de los archivos para la descarga masiva
 
         if (resInfo.ok) {
             const info = await resInfo.json();
@@ -249,12 +250,17 @@ async function evaluarExpediente(ajusteId, borradorTexto = '') {
                     } else {
                         const nombreArchivo = doc.RutaArchivo.split('\\').pop().split('/').pop();
                         const rutaWeb = doc.RutaArchivo.replace(/\\/g, '/');
+                        const urlCompleta = `http://localhost:3000/${rutaWeb}`;
+
+                        // Guardamos la URL para el botón de descarga masiva
+                        urlsParaDescargar.push(`'${urlCompleta}'`);
+
                         htmlContenido += `
                             <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-color); border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 10px;">
                                 <strong style="color: var(--primary-color); width: 50px;">${doc.TipoDocumento}</strong>
                                 <span style="color: var(--text-muted); font-size: 0.85em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; flex-grow: 1; text-align: center;">${nombreArchivo}</span>
                                 <div style="display: flex; gap: 8px;">
-                                    <a href="http://localhost:3000/${rutaWeb}" target="_blank" style="background: var(--primary-color); color: white; padding: 5px 12px; border-radius: 5px; text-decoration: none; font-size: 0.8em; font-weight: bold; white-space: nowrap;">👁️ Ver</a>
+                                    <a href="${urlCompleta}" target="_blank" style="background: var(--primary-color); color: white; padding: 5px 12px; border-radius: 5px; text-decoration: none; font-size: 0.8em; font-weight: bold; white-space: nowrap;">👁️ Ver</a>
                                     ${esConcluido ? '' : `<button onclick="preguntarAccion(${ajusteId}, '${tipo}', 'rechazar')" style="background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 0.8em; font-weight: bold;">✖ Rechazar</button>`}
                                 </div>
                             </div>
@@ -269,9 +275,57 @@ async function evaluarExpediente(ajusteId, borradorTexto = '') {
                     `;
                 }
             });
+
+            // Si hay archivos para descargar, agregamos el botón maestro
+            if (urlsParaDescargar.length > 0) {
+                htmlContenido += `
+                    <div style="display: flex; justify-content: center; margin-top: 15px;">
+                        <button onclick="descargarArchivosMasivo([${urlsParaDescargar.join(',')}])" style="background-color: transparent; color: var(--primary-color); border: 2px solid var(--primary-color); padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                            📥 Descargar Todos los Archivos (${urlsParaDescargar.length})
+                        </button>
+                    </div>
+                `;
+            }
         }
         modalContenido.innerHTML = htmlContenido;
     } catch (error) { modalContenido.innerHTML = '<p style="color: #e74c3c;">Error al conectar con el servidor.</p>'; }
+}
+
+// ==========================================
+// FUNCIÓN NUEVA: DESCARGA MASIVA
+// ==========================================
+async function descargarArchivosMasivo(urls) {
+    if (!urls || urls.length === 0) return;
+
+    mostrarToast(`⏳ Preparando la descarga de ${urls.length} archivo(s)...`, "info");
+
+    for (let url of urls) {
+        try {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error("No se pudo obtener el archivo");
+
+            const blob = await res.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = blobUrl;
+
+            // Extraer el nombre original o asignar uno por defecto
+            a.download = url.split('/').pop() || 'documento_aspv';
+
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(blobUrl);
+        } catch (e) {
+            console.error("Error descargando:", url);
+            mostrarToast("❌ Error al descargar un archivo.", "error");
+        }
+
+        // Pausa ligera para asegurar que el navegador registre cada descarga independiente
+        await new Promise(r => setTimeout(r, 400));
+    }
+
+    mostrarToast("✅ Todas las descargas han finalizado.", "success");
 }
 
 async function guardarEstadoAdmin(ajusteId) {
@@ -430,7 +484,6 @@ async function exportarExcel() {
         const res = await fetch('http://localhost:3000/api/exportar-excel');
 
         if (res.ok) {
-            // Recibimos el archivo binario (.xlsx)
             const blob = await res.blob();
             const url = window.URL.createObjectURL(blob);
 
@@ -451,7 +504,6 @@ async function exportarExcel() {
         mostrarToast("❌ Error de red al intentar descargar.", "error");
     }
 }
-
 
 document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('nombreUsuarioUI').innerText = `Hola, ${nombreUsuario}`;

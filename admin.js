@@ -45,7 +45,6 @@ function aplicarPreferencias() {
     }
 }
 
-// Se ejecuta inmediatamente para evitar el "parpadeo blanco" al cambiar de pestaña
 aplicarPreferencias();
 
 function cambiarTema(tema) {
@@ -112,7 +111,8 @@ async function cargarTablaDetallada() {
                 `;
 
                 lista.forEach((exp, index) => {
-                    const folioPersonal = lista.length - index;
+                    const folioPersonal = exp.AjusteID || (index + 1);
+
                     const fecha = new Date(exp.FechaOcurrencia).toLocaleDateString('es-MX');
                     let colorEstado = exp.Estado === 'Concluido' ? '#2ecc71' : (exp.Estado === 'En Análisis' ? '#f39c12' : '#3498db');
                     const lugar = exp.Lugar || 'N/A';
@@ -144,9 +144,6 @@ async function cargarTablaDetallada() {
     } catch (error) { console.error("Error al cargar la tabla detallada:", error); }
 }
 
-// ==========================================
-// 2. GESTIÓN DE PERSONAL (Alta y Baja)
-// ==========================================
 function mostrarFormularioAlta() { document.getElementById('formNuevoUsuario').style.display = 'flex'; }
 function ocultarFormularioAlta() { document.getElementById('formNuevoUsuario').style.display = 'none'; }
 
@@ -158,6 +155,7 @@ async function cargarPersonal() {
             document.getElementById('kpiPersonal').innerText = usuarios.length;
 
             const lista = document.getElementById('listaPersonal');
+            if(!lista) return;
             lista.innerHTML = '';
 
             usuarios.forEach(u => {
@@ -171,6 +169,7 @@ async function cargarPersonal() {
                         </div>
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <span style="color: ${colorRol}; font-size: 0.8em; font-weight: bold;">${u.Rol}</span>
+                            <button onclick="abrirModalEditar(${u.UsuarioID}, '${u.Nombre}', '${u.Correo}', '${u.Rol}')" style="background: transparent; color: #f39c12; border: none; cursor: pointer; font-size: 1.1em;" title="Editar Empleado">✏️</button>
                             <button onclick="preguntarAccion(${u.UsuarioID}, '${u.Nombre}', 'eliminar')" style="background: transparent; color: #e74c3c; border: none; cursor: pointer; font-size: 1.1em;" title="Eliminar Empleado">🗑️</button>
                         </div>
                     </li>
@@ -180,33 +179,90 @@ async function cargarPersonal() {
     } catch (error) { console.error("Error al cargar lista de personal:", error); }
 }
 
-document.getElementById('formNuevoUsuario').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const payload = {
-        nombre: document.getElementById('nuevoNombre').value,
-        correo: document.getElementById('nuevoCorreo').value,
-        password: document.getElementById('nuevoPassword').value,
-        rol: document.getElementById('nuevoRol').value
-    };
+// ALTA DE USUARIO
+const formNuevoUsuario = document.getElementById('formNuevoUsuario');
+if (formNuevoUsuario) {
+    formNuevoUsuario.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const payload = {
+            nombre: document.getElementById('nuevoNombre').value,
+            correo: document.getElementById('nuevoCorreo').value,
+            password: document.getElementById('nuevoPassword').value,
+            rol: document.getElementById('nuevoRol').value
+        };
 
-    try {
-        const res = await fetch('http://localhost:3000/api/usuarios', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
+        try {
+            const res = await fetch('http://localhost:3000/api/usuarios', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
 
-        if (res.ok) {
-            mostrarToast("Empleado registrado exitosamente.", "success");
-            document.getElementById('formNuevoUsuario').reset();
-            ocultarFormularioAlta();
-            cargarPersonal();
-        } else {
-            const errorData = await res.json().catch(() => ({}));
-            mostrarToast(`Error al registrar: ${errorData.error || 'Correo ya registrado.'}`, "error");
+            if (res.ok) {
+                mostrarToast("Empleado registrado exitosamente.", "success");
+                formNuevoUsuario.reset();
+                ocultarFormularioAlta();
+                cargarPersonal();
+            } else {
+                const errorData = await res.json().catch(() => ({}));
+                mostrarToast(`Error al registrar: ${errorData.error || 'Correo ya registrado.'}`, "error");
+            }
+        } catch (error) { console.error("Error:", error); mostrarToast("Error de conexión con el servidor.", "error"); }
+    });
+}
+
+// ==========================================
+// LÓGICA DE EDICIÓN DE USUARIO
+// ==========================================
+function abrirModalEditar(id, nombre, correo, rol) {
+    document.getElementById('editUsuarioID').value = id;
+    document.getElementById('editNombre').value = nombre;
+    document.getElementById('editCorreo').value = correo;
+    document.getElementById('editRol').value = rol;
+    document.getElementById('editPassword').value = '';
+
+    document.getElementById('modalEditarUsuario').style.display = 'flex';
+}
+
+function cerrarModalEditar() {
+    document.getElementById('modalEditarUsuario').style.display = 'none';
+}
+
+const formEditarUsuario = document.getElementById('formEditarUsuario');
+if (formEditarUsuario) {
+    formEditarUsuario.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const id = document.getElementById('editUsuarioID').value;
+        const payload = {
+            nombre: document.getElementById('editNombre').value,
+            correo: document.getElementById('editCorreo').value,
+            password: document.getElementById('editPassword').value,
+            rol: document.getElementById('editRol').value
+        };
+
+        try {
+            const res = await fetch(`http://localhost:3000/api/usuarios/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                mostrarToast("Los datos del empleado fueron actualizados.", "success");
+                cerrarModalEditar();
+                cargarPersonal();
+            } else {
+                const errorData = await res.json().catch(() => ({}));
+                mostrarToast(`Error al actualizar: ${errorData.error || 'Correo en uso.'}`, "error");
+            }
+        } catch (error) {
+            console.error("Error al actualizar usuario:", error);
+            mostrarToast("Error de conexión con el servidor.", "error");
         }
-    } catch (error) { console.error("Error:", error); mostrarToast("Error de conexión con el servidor.", "error"); }
-});
+    });
+}
+
 
 let accionPendiente = null;
 let idObjetivo = null;
@@ -245,9 +301,6 @@ async function confirmarAccion() {
     }
 }
 
-// ==========================================
-// 3. EXCEL Y GRÁFICAS (NUEVO EXCELJS)
-// ==========================================
 async function exportarExcel() {
     try {
         mostrarToast("⏳ Generando archivo Excel con diseño...", "info");
@@ -255,7 +308,6 @@ async function exportarExcel() {
         const res = await fetch('http://localhost:3000/api/exportar-excel');
 
         if (res.ok) {
-            // Recibimos el archivo binario (.xlsx)
             const blob = await res.blob();
             const url = window.URL.createObjectURL(blob);
 
@@ -351,7 +403,7 @@ async function revisarNotificaciones() {
                                 <p style="margin: 0 0 5px 0; font-size: 0.9em; color: var(--text-color);"><strong>${noti.Remitente}</strong> ${noti.Mensaje}</p>
                                 <span style="font-size: 0.75em; color: var(--text-muted);">${fecha}</span>
                             </div>
-                            <div class="punto-azul" style="width: 10px; height: 10px; background-color: var(--primary-color); border-radius: 50%; margin-top: 5px; flex-shrink: 0;"></div>
+                            <div class="punk-azul" style="width: 10px; height: 10px; background-color: var(--primary-color); border-radius: 50%; margin-top: 5px; flex-shrink: 0;"></div>
                         `;
                         listaUI.appendChild(li);
                     });
@@ -366,19 +418,17 @@ async function revisarNotificaciones() {
     }
 }
 
-// ==========================================
-// 10. INICIALIZACIÓN (Un solo bloque)
-// ==========================================
 document.addEventListener("DOMContentLoaded", () => {
-    document.getElementById('nombreUsuarioUI').innerText = `Hola, ${nombreUsuario}`;
+    const nombreUI = document.getElementById('nombreUsuarioUI');
+    if (nombreUI) {
+        nombreUI.innerText = `Hola, ${nombreUsuario || 'Administrador'}`;
+    }
 
-    // Iniciar funciones
     cargarMetricas();
     cargarPersonal();
     cargarTablaDetallada();
     inicializarGraficas();
 
-    // Eventos de la campanita
     const marcarBtn = document.getElementById('marcarLeidasBtn');
     if (marcarBtn) {
         marcarBtn.addEventListener('click', async () => {

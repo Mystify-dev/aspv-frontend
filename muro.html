@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASPV - Muro Global</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Menú Lateral -->
+<aside class="sidebar">
+    <img src="imagenes/LogoASPV.jpg" alt="Logo ASPV" style="width: 110px; margin-bottom: 15px; margin-top: 5px; border-radius: 12px;">
+    <p style="color: var(--text-muted); font-size: 0.9em; margin-bottom: 40px;">GESTIÓN DE SINIESTROS</p>
+
+    <nav style="display: flex; flex-direction: column; gap: 15px;" id="navMenu">
+        <strong>Menú Principal</strong>
+        <a href="admin.html" id="btnAdmin" style="display: none; color: var(--text-color); text-decoration: none;">⚙️ Gerencia y Usuarios</a>
+        <a href="resumen.html" id="btnAnalista" style="display: none; color: var(--text-color); text-decoration: none;">📊 Panel de Análisis</a>
+        <a href="index.html" id="btnAjustador" style="display: none; color: var(--text-color); text-decoration: none;">📁 Mis Expedientes</a>
+        <a href="muro.html" id="btnMuro" style="display: none; color: var(--text-color); text-decoration: none;">🌐 Muro Global</a>
+        <a href="calendario.html" id="btnCalendario" style="display: none; color: var(--text-color); text-decoration: none;">📅 Calendario</a>
+
+        <!-- Script inteligente que muestra el muro a todos -->
+        <script>
+            const rolActual = localStorage.getItem('aspv_rol');
+
+            // TODOS los roles pueden ver el muro
+            if(document.getElementById('btnMuro')) {
+                document.getElementById('btnMuro').style.display = 'block';
+            }
+
+            if (rolActual === 'Admin') {
+                document.getElementById('btnAdmin').style.display = 'block';
+                document.getElementById('btnAnalista').style.display = 'block';
+                document.getElementById('btnCalendario').style.display = 'block';
+            } else if (rolActual === 'Analista' || rolActual === 'Analista de Pagos') {
+                document.getElementById('btnAnalista').style.display = 'block';
+                document.getElementById('btnCalendario').style.display = 'block';
+            } else if (rolActual === 'Ajustador') {
+                document.getElementById('btnAjustador').style.display = 'block';
+                document.getElementById('btnCalendario').style.display = 'block';
+            }
+
+            // Resalta la página actual
+            const urlActual = window.location.pathname.split('/').pop() || 'index.html';
+            document.querySelectorAll('#navMenu a').forEach(enlace => {
+                if (enlace.getAttribute('href') === urlActual) {
+                    enlace.style.color = 'var(--primary-color)';
+                    enlace.style.fontWeight = 'bold';
+                }
+            });
+        </script>
+
+        <div style="margin-top: 40px;">
+            <p style="font-size: 0.8em; color: var(--text-muted); margin-bottom: 8px;">Apariencia:</p>
+            <div style="display: flex; gap: 5px;">
+                <button onclick="cambiarTema('light')" style="cursor: pointer; padding: 5px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-color);">☀️</button>
+                <button onclick="cambiarTema('dark')" style="cursor: pointer; padding: 5px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-color);">🌙</button>
+                <button onclick="cambiarTexto('normal')" style="cursor: pointer; padding: 5px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-color); font-weight: bold;">A</button>
+                <button onclick="cambiarTexto('grande')" style="cursor: pointer; padding: 5px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-color); font-weight: bold;">A+</button>
+            </div>
+        </div>
+    </nav>
+</aside>
+
+<!-- Contenido Principal -->
+<main class="main-content" style="background-color: var(--panel-bg); display: flex; flex-direction: column;">
+    <header class="topbar">
+        <h2 style="margin: 0; color: var(--text-color);">🌐 Foro de Siniestros</h2>
+        <div style="flex: 1;"></div>
+        <div class="user-profile" style="display: flex; align-items: center; gap: 15px;">
+            <strong id="nombreUsuarioUI">Hola, Cargando...</strong>
+            <button onclick="cerrarSesion()" style="background-color: #e74c3c; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold;">Salir 🚪</button>
+        </div>
+    </header>
+
+    <div class="dashboard" style="flex: 1; overflow-y: auto; padding: 20px;">
+        <div style="max-width: 700px; margin: 0 auto; margin-bottom: 20px; text-align: center;">
+            <h1 style="margin: 0 0 5px 0;">Novedades y Casos</h1>
+            <p style="color: var(--text-muted); font-size: 0.9em;">Descarga archivos y comenta con tu equipo. Las notas privadas de auditoría no se muestran aquí.</p>
+        </div>
+
+        <!-- Contenedor central como el Feed de Facebook -->
+        <div id="feedSiniestros" style="max-width: 700px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; padding-bottom: 40px;">
+            <p style="text-align: center; color: var(--text-muted);">Cargando muro...</p>
+        </div>
+    </div>
+</main>
+
+<div id="toast-container"></div>
+<script src="muro.js"></script>
+
+</body>
+</html>
