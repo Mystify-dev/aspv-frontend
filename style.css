@@ -1,24 +1,37 @@
-/* Variables de Tema Claro */
+/* Importar tipografías Premium de Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
+
+/* Variables de Tema Claro (Ajustado para combinar con la nueva tipografía) */
 :root {
-    --bg-color: #ffffff;
-    --text-color: #1a1a1a;
-    --text-muted: #6b7280;
-    --primary-color: #1e3a8a; /* Azul oscuro estilo aseguradora */
-    --primary-hover: #1e40af;
-    --panel-bg: #f3f4f6;
-    --border-color: #e5e7eb;
+    --bg-color: #f8fafc;
+    --text-color: #0f172a;
+    --text-muted: #64748b;
+    --primary-color: #2563EB; /* Azul eléctrico del diseño ASPV */
+    --primary-hover: #1d4ed8;
+    --panel-bg: #ffffff;
+    --border-color: #e2e8f0;
     --base-font-size: 14px;
+
+    /* Colores de estado ASPV */
+    --success-color: #10B981;
+    --warning-color: #F59E0B;
+    --danger-color: #EF4444;
 }
 
-/* Variables de Tema Oscuro */
+/* Variables de Tema Oscuro "ASPV Dark Claims Protocol" */
 [data-theme="dark"] {
-    --bg-color: #121212;
-    --text-color: #e5e5e5;
-    --text-muted: #a1a1aa;
-    --primary-color: #3b82f6;
-    --primary-hover: #60a5fa;
-    --panel-bg: #000000;
-    --border-color: #333333;
+    --bg-color: #0F172A;      /* Fondo marino profundo */
+    --panel-bg: #1E293B;      /* Fondo de tarjetas ligeramente más claro */
+    --text-color: #F8FAFC;    /* Texto blanco puro */
+    --text-muted: #94A3B8;    /* Texto secundario grisáceo/azulado */
+    --primary-color: #3B82F6; /* Azul brillante para destacar sobre oscuro */
+    --primary-hover: #60A5FA;
+    --border-color: #334155;  /* Bordes sutiles para enmarcar */
+
+    /* Colores de estado ASPV (Optimizados para fondo oscuro) */
+    --success-color: #10B981;
+    --warning-color: #F59E0B;
+    --danger-color: #EF4444;
 }
 
 /* Clases de Accesibilidad */
@@ -31,42 +44,52 @@
 }
 
 body {
-    background-color: var(--panel-bg);
+    background-color: var(--bg-color);
     color: var(--text-color);
     font-size: var(--base-font-size);
-    font-family: system-ui, -apple-system, sans-serif;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif; /* Tipografía del cuerpo */
     margin: 0;
     display: flex;
     height: 100vh;
     overflow: hidden;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Aplicar la fuente de títulos a todos los encabezados y etiquetas fuertes */
+h1, h2, h3, h4, h5, h6, strong, th, .toast {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    letter-spacing: -0.02em; /* Le da ese toque compacto y moderno */
 }
 
 /* Estructura Principal (Grid & Flexbox) */
 .sidebar {
     width: 250px;
-    background-color: var(--bg-color);
+    background-color: var(--panel-bg); /* En el diseño oscuro, el menú lateral usa el color del panel */
     border-right: 1px solid var(--border-color);
     padding: 20px;
     display: flex;
     flex-direction: column;
+    z-index: 10;
 }
 
 .main-content {
     flex: 1;
     display: flex;
     flex-direction: column;
+    background-color: var(--bg-color);
 }
 
 .topbar {
-    min-height: 70px; /* Cambiado para que se adapte si hay muchos filtros */
-    background-color: var(--bg-color);
+    min-height: 70px;
+    background-color: var(--panel-bg); /* Barra superior con el mismo tono del menú */
     border-bottom: 1px solid var(--border-color);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 15px 30px; /* Un poco más de espacio vertical */
-    flex-wrap: wrap; /* Permite que los elementos bajen si no hay espacio */
+    padding: 15px 30px;
+    flex-wrap: wrap;
     gap: 15px;
+    z-index: 5;
 }
 
 .dashboard {
@@ -74,7 +97,7 @@ body {
     overflow-y: auto;
 }
 
-/* Tarjetas (Cards) - Adaptable a 3 o 4 tarjetas en la misma fila */
+/* Tarjetas (Cards) */
 .kpi-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -83,17 +106,66 @@ body {
 }
 
 .card {
-    background-color: var(--bg-color);
+    background-color: var(--panel-bg);
     border: 1px solid var(--border-color);
-    border-radius: 12px;
+    border-radius: 16px; /* Bordes un poco más redondeados como en el diseño */
     padding: 20px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }
 
 .grid-dos-columnas {
     display: grid;
     grid-template-columns: 2fr 1fr;
     gap: 20px;
+}
+
+/* Tablas con diseño moderno */
+table {
+    width: 100%;
+    text-align: left;
+    border-collapse: separate; /* Cambiado para permitir bordes redondeados */
+    border-spacing: 0;
+    font-size: 0.9em;
+}
+
+th {
+    padding: 12px 15px;
+    color: var(--text-muted);
+    font-size: 0.85em;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 2px solid var(--border-color);
+}
+
+td {
+    padding: 15px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.02); /* Efecto hover sutil */
+}
+
+/* Inputs y Selects */
+input, select, textarea {
+    font-family: 'Inter', sans-serif;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+input:focus, select:focus, textarea:focus {
+    border-color: var(--primary-color) !important;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2); /* Resplandor azul al seleccionar */
+}
+
+/* Botones */
+button {
+    font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
 /* ESTILOS DE NÓMINA Y RESUMEN POR AJUSTADOR */
@@ -147,19 +219,18 @@ body {
     border-left: 5px solid var(--primary-color);
     padding: 15px 20px;
     border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
     font-size: 0.9em;
-    font-weight: bold;
     display: flex;
     align-items: center;
     gap: 10px;
-    animation: slideIn 0.3s ease-out forwards, fadeOut 0.5s ease-out 3s forwards;
+    animation: slideIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, fadeOut 0.5s ease-out 3s forwards;
 }
 
-.toast.success { border-left-color: #2ecc71; }
-.toast.error { border-left-color: #e74c3c; }
-.toast.info { border-left-color: #3498db; }
-.toast.warning { border-left-color: #f39c12; }
+.toast.success { border-left-color: var(--success-color); }
+.toast.error { border-left-color: var(--danger-color); }
+.toast.info { border-left-color: var(--primary-color); }
+.toast.warning { border-left-color: var(--warning-color); }
 
 @keyframes slideIn {
     from { transform: translateX(100%); opacity: 0; }

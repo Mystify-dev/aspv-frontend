@@ -18,7 +18,7 @@
         <a href="resumen.html" id="btnAnalista" style="display: none; color: var(--text-color); text-decoration: none;">📊 Panel de Análisis</a>
         <a href="index.html" id="btnAjustador" style="display: none; color: var(--text-color); text-decoration: none;">📁 Mis Expedientes</a>
 
-        <!-- NUEVO: Enlace al Muro Global -->
+        <!-- Enlace al Muro Global -->
         <a href="muro.html" id="btnMuro" style="display: none; color: var(--text-color); text-decoration: none;">🌐 Muro Global</a>
 
         <a href="calendario.html" id="btnCalendario" style="display: none; color: var(--text-color); text-decoration: none;">📅 Calendario</a>
@@ -99,7 +99,9 @@
             </div>
 
             <div class="user-profile" style="display: flex; align-items: center; gap: 15px;">
+                <img id="avatarHeader" src="imagenes/LogoASPV.jpg" alt="Avatar" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary-color);">
                 <strong id="nombreUsuarioUI">Hola, Cargando...</strong>
+                <button onclick="abrirModalPerfil()" style="background-color: var(--primary-color); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s;">👤 Mi Perfil</button>
                 <button onclick="cerrarSesion()" style="background-color: #e74c3c; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s;">Salir 🚪</button>
             </div>
         </div>
@@ -132,6 +134,7 @@
                 <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 20px 0;">
 
                 <form id="formExpediente" style="display: flex; flex-direction: column; gap: 15px;">
+                    <!-- Fila 1 -->
                     <div style="display: flex; gap: 15px;">
                         <div style="flex: 1;">
                             <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold;">Número de siniestro</label>
@@ -143,26 +146,65 @@
                         </div>
                     </div>
 
-                    <div style="display: flex; gap: 15px;">
-                        <div style="flex: 1;">
+                    <!-- Fila 2: Asegurado, Municipio, Estado -->
+                    <div style="display: flex; gap: 10px;">
+                        <div style="flex: 1.5;">
                             <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold;">Asegurado</label>
                             <input type="text" id="nombreAsegurado" placeholder="Nombre completo" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); margin-top: 5px; box-sizing: border-box;">
                         </div>
                         <div style="flex: 1;">
-                            <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold;">Lugar (Ciudad/Zona)</label>
-                            <input type="text" id="lugarSiniestro" placeholder="Ej. Mérida, Yucatán" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); margin-top: 5px; box-sizing: border-box;">
+                            <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold;">Municipio</label>
+                            <input type="text" id="municipio" placeholder="Ej. Escárcega" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); margin-top: 5px; box-sizing: border-box;">
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold;">Estado</label>
+                            <select id="estadoLugar" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); margin-top: 5px; box-sizing: border-box;">
+                                <option value="" disabled selected>Selecciona el estado</option>
+                                <option value="Aguascalientes">Aguascalientes</option>
+                                <option value="Baja California">Baja California</option>
+                                <option value="Baja California Sur">Baja California Sur</option>
+                                <option value="Campeche">Campeche</option>
+                                <option value="Chiapas">Chiapas</option>
+                                <option value="Chihuahua">Chihuahua</option>
+                                <option value="Ciudad de México">Ciudad de México</option>
+                                <option value="Coahuila">Coahuila</option>
+                                <option value="Colima">Colima</option>
+                                <option value="Durango">Durango</option>
+                                <option value="Estado de México">Estado de México</option>
+                                <option value="Guanajuato">Guanajuato</option>
+                                <option value="Guerrero">Guerrero</option>
+                                <option value="Hidalgo">Hidalgo</option>
+                                <option value="Jalisco">Jalisco</option>
+                                <option value="Michoacán">Michoacán</option>
+                                <option value="Morelos">Morelos</option>
+                                <option value="Nayarit">Nayarit</option>
+                                <option value="Nuevo León">Nuevo León</option>
+                                <option value="Oaxaca">Oaxaca</option>
+                                <option value="Puebla">Puebla</option>
+                                <option value="Querétaro">Querétaro</option>
+                                <option value="Quintana Roo">Quintana Roo</option>
+                                <option value="San Luis Potosí">San Luis Potosí</option>
+                                <option value="Sinaloa">Sinaloa</option>
+                                <option value="Sonora">Sonora</option>
+                                <option value="Tabasco">Tabasco</option>
+                                <option value="Tamaulipas">Tamaulipas</option>
+                                <option value="Tlaxcala">Tlaxcala</option>
+                                <option value="Veracruz">Veracruz</option>
+                                <option value="Yucatán">Yucatán</option>
+                                <option value="Zacatecas">Zacatecas</option>
+                            </select>
                         </div>
                     </div>
 
-                    <!-- Fila 3: Póliza, Seguro, Monto y KM -->
+                    <!-- Fila 3: Póliza, Aseguradora, Kilometraje -->
                     <div style="display: flex; gap: 10px;">
                         <div style="flex: 1;">
                             <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold;">Póliza</label>
                             <input type="text" id="poliza" placeholder="POL-458921" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); margin-top: 5px; box-sizing: border-box;">
                         </div>
                         <div style="flex: 1;">
-                            <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold;">Tipo Seguro</label>
-                            <select id="tipoSeguro" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); margin-top: 5px; box-sizing: border-box;">
+                            <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold;">Aseguradora</label>
+                            <select id="aseguradora" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); margin-top: 5px; box-sizing: border-box;">
                                 <option value="Inbursa">Inbursa</option>
                                 <option value="AIG">AIG</option>
                                 <option value="Azteca">Azteca</option>
@@ -174,13 +216,38 @@
                             </select>
                         </div>
                         <div style="flex: 1;">
-                            <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold;">Monto Est. ($)</label>
-                            <input type="number" id="montoSiniestro" placeholder="0.00" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); margin-top: 5px; box-sizing: border-box;">
+                            <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold;">Kilometraje (km)</label>
+                            <input type="number" id="kmSiniestro" placeholder="Ej. 120" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); margin-top: 5px; box-sizing: border-box;">
+                        </div>
+                    </div>
+
+                    <!-- Fila 4: Tipo de Cobertura y Tipo de Siniestro -->
+                    <div style="display: flex; gap: 10px;">
+                        <div style="flex: 1;">
+                            <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold;">Tipo de Cobertura</label>
+                            <select id="tipoCobertura" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); margin-top: 5px; box-sizing: border-box;">
+                                <option value="Local">Local</option>
+                                <option value="Carretero / Foráneo">Carretero / Foráneo</option>
+                            </select>
                         </div>
                         <div style="flex: 1;">
-                            <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold;">Kilometraje (km)</label>
-                            <input type="number" id="kmSiniestro" placeholder="Ej. 45000" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); margin-top: 5px; box-sizing: border-box;">
+                            <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold;">Tipo de Siniestro</label>
+                            <select id="tipoSiniestro" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); margin-top: 5px; box-sizing: border-box;">
+                                <option value="Colisión">Colisión</option>
+                                <option value="Daños">Daños</option>
+                                <option value="No Localizado">No Localizado</option>
+                                <option value="Cancelado">Cancelado</option>
+                            </select>
                         </div>
+                    </div>
+
+                    <!-- NUEVO: CHECKBOX COMPLEMENTARIO -->
+                    <div style="background: rgba(142, 68, 173, 0.1); border: 1px solid rgba(142, 68, 173, 0.3); padding: 12px; border-radius: 8px;">
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: var(--text-color); font-size: 0.9em; margin: 0;">
+                            <input type="checkbox" id="checkComplementario" style="width: 18px; height: 18px; cursor: pointer; accent-color: #8e44ad;">
+                            <strong>Siniestro Complementario (2da Atención / Corralón)</strong>
+                        </label>
+                        <p style="margin: 5px 0 0 28px; font-size: 0.8em; color: var(--text-muted);">Marca esta casilla para saltar la protección de duplicados si vas a re-atender un mismo folio.</p>
                     </div>
 
                     <div>
@@ -234,8 +301,15 @@
         </div>
 
         <div class="card" style="margin-top: 20px;">
-            <h3>Bandeja de Entrada</h3>
-            <p style="color: var(--text-muted); font-size: 0.9em;">Historial de siniestros registrados.</p>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <div>
+                    <h3 style="margin: 0;">Bandeja de Entrada</h3>
+                    <p style="color: var(--text-muted); font-size: 0.9em; margin-top: 5px; margin-bottom: 0;">Historial de siniestros registrados.</p>
+                </div>
+                <button onclick="descargarMiExcel()" style="background-color: #2ecc71; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-weight: bold;">
+                    📊 Exportar mi Excel
+                </button>
+            </div>
             <div style="overflow-x: auto;">
                 <table style="width: 100%; text-align: left; border-collapse: collapse; margin-top: 15px;">
                     <thead>
@@ -295,6 +369,35 @@
 
 <!-- Contenedor para Notificaciones Toast -->
 <div id="toast-container"></div>
+
+<!-- MODAL DE PERFIL DE USUARIO -->
+<div id="modalPerfil" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center;">
+    <div class="card" style="width: 400px; max-width: 90%; background: var(--panel-bg); border-radius: 12px; padding: 20px; position: relative; text-align: center;">
+        <button onclick="cerrarModalPerfil()" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.2em; color: var(--text-color); cursor: pointer;">✖</button>
+        <h3 style="margin-top: 0;">Mi Perfil</h3>
+        <p style="color: var(--text-muted); font-size: 0.9em; margin-top: -10px;">Actualiza tu foto y número de contacto.</p>
+        <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 15px 0;">
+
+        <form id="formPerfil" style="display: flex; flex-direction: column; gap: 15px; text-align: left;">
+            <div style="text-align: center;">
+                <img id="previewFotoPerfil" src="imagenes/LogoASPV.jpg" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary-color); margin-bottom: 10px;">
+                <input type="file" id="inputFotoPerfil" accept="image/*" style="width: 100%; font-size: 0.8em; color: var(--text-color);">
+            </div>
+
+            <div>
+                <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold;">Correo (No editable)</label>
+                <input type="text" id="correoPerfil" disabled style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-muted); margin-top: 5px; box-sizing: border-box; opacity: 0.7;">
+            </div>
+
+            <div>
+                <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold;">Teléfono Celular</label>
+                <input type="text" id="telefonoPerfil" placeholder="Ej. 999 123 4567" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); margin-top: 5px; box-sizing: border-box;">
+            </div>
+
+            <button type="submit" style="background-color: #2ecc71; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px;">💾 Guardar Cambios</button>
+        </form>
+    </div>
+</div>
 
 </body>
 </html>

@@ -445,3 +445,92 @@ document.addEventListener("DOMContentLoaded", () => {
     revisarNotificaciones();
     setInterval(revisarNotificaciones, 10000);
 });
+
+// ==========================================
+// PERFIL DE USUARIO (UNIVERSAL)
+// ==========================================
+const miUsuarioIdGbl = localStorage.getItem('aspv_id');
+
+async function cargarDatosPerfil() {
+    if (!miUsuarioIdGbl) return;
+    try {
+        const res = await fetch(`http://localhost:3000/api/perfil/${miUsuarioIdGbl}`);
+        if (res.ok) {
+            const perfil = await res.json();
+
+            // Actualizar la foto en el header (si existe)
+            const avatarUrl = perfil.FotoPerfil ? `http://localhost:3000/${perfil.FotoPerfil}` : 'imagenes/LogoASPV.jpg';
+            const avatarHeader = document.getElementById('avatarHeader');
+            if (avatarHeader) avatarHeader.src = avatarUrl;
+
+            // Llenar el modal (si existe en el DOM actual)
+            const previewFoto = document.getElementById('previewFotoPerfil');
+            if (previewFoto) previewFoto.src = avatarUrl;
+
+            const correoInput = document.getElementById('correoPerfil');
+            if (correoInput) correoInput.value = perfil.Correo;
+
+            const telInput = document.getElementById('telefonoPerfil');
+            if (telInput) telInput.value = perfil.Telefono || '';
+        }
+    } catch (error) { console.error("Error al cargar perfil", error); }
+}
+
+function abrirModalPerfil() {
+    const modal = document.getElementById('modalPerfil');
+    if (modal) modal.style.display = 'flex';
+}
+
+function cerrarModalPerfil() {
+    const modal = document.getElementById('modalPerfil');
+    if (modal) modal.style.display = 'none';
+}
+
+// Vista previa de la foto
+const inputFoto = document.getElementById('inputFotoPerfil');
+if (inputFoto) {
+    inputFoto.addEventListener('change', function(e) {
+        if (e.target.files && e.target.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(ev) { document.getElementById('previewFotoPerfil').src = ev.target.result; }
+            reader.readAsDataURL(e.target.files[0]);
+        }
+    });
+}
+
+// Guardar en Base de Datos
+const formPerfil = document.getElementById('formPerfil');
+if (formPerfil) {
+    formPerfil.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        mostrarToast("Guardando perfil...", "info");
+
+        const formData = new FormData();
+        formData.append('telefono', document.getElementById('telefonoPerfil').value.trim());
+
+        const foto = document.getElementById('inputFotoPerfil').files[0];
+        if (foto) formData.append('fotoPerfil', foto);
+
+        try {
+            const res = await fetch(`http://localhost:3000/api/perfil/${miUsuarioIdGbl}`, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (res.ok) {
+                mostrarToast("✅ Perfil actualizado.", "success");
+                cargarDatosPerfil(); // Recarga la foto
+                cerrarModalPerfil();
+            } else {
+                mostrarToast("❌ Error al guardar perfil.", "error");
+            }
+        } catch (error) {
+            mostrarToast("❌ Error de red.", "error");
+        }
+    });
+}
+
+// Llamar automáticamente al entrar
+document.addEventListener("DOMContentLoaded", () => {
+    cargarDatosPerfil();
+});

@@ -30,7 +30,26 @@ function cerrarSesion() {
     window.location.href = 'login.html';
 }
 
-const TARIFA_POR_SINIESTRO = 230;
+// ==========================================
+// DICCIONARIO DINÁMICO DE TARIFAS
+// ==========================================
+const TARIFAS_MUNICIPIO = {
+    "merida": 230,
+    "valladolid": 550
+    // "cancun": 600, <-- Ejemplo para agregar más tarde
+    // "tijuana": 450
+};
+const TARIFA_BASE = 230; // Tarifa por defecto si el municipio no está en la lista
+
+function obtenerTarifa(lugarString) {
+    if (!lugarString) return TARIFA_BASE;
+    // Extraemos el municipio de "Municipio, Estado" y quitamos acentos
+    const municipio = lugarString.split(',')[0].trim().toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+    return TARIFAS_MUNICIPIO[municipio] || TARIFA_BASE;
+}
+
 let baseExpedientes = []; // Guardamos la BD aquí
 
 // ==========================================
@@ -102,8 +121,8 @@ function cargarTablaPagos() {
     const contenedor = document.getElementById('contenedorTablasPagos');
     if (!contenedor) return;
 
-    const mesSeleccionado = document.getElementById('filtroMes').value; // Formato "YYYY-MM"
-    const quincenaSeleccionada = document.getElementById('filtroQuincena').value; // "Todas", "1ra", "2da"
+    const mesSeleccionado = document.getElementById('filtroMes').value;
+    const quincenaSeleccionada = document.getElementById('filtroQuincena').value;
 
     // 1. Filtrar los datos en base a las opciones elegidas
     let expedientesFiltrados = baseExpedientes.filter(exp => {
@@ -113,15 +132,11 @@ function cargarTablaPagos() {
         const [expYear, expMonth, expDayStr] = soloFecha.split('-');
         const expDay = parseInt(expDayStr, 10);
 
-        // Filtro de Mes y Año (Si el usuario seleccionó uno)
         if (mesSeleccionado) {
             const [yearSel, monthSel] = mesSeleccionado.split('-');
-            if (expYear !== yearSel || expMonth !== monthSel) {
-                return false; // No coincide el mes o año
-            }
+            if (expYear !== yearSel || expMonth !== monthSel) return false;
         }
 
-        // Filtro de Quincena (Aplica dentro del mes seleccionado, o en todo el historial)
         if (quincenaSeleccionada === '1ra' && expDay > 15) return false;
         if (quincenaSeleccionada === '2da' && expDay <= 15) return false;
 
@@ -133,7 +148,11 @@ function cargarTablaPagos() {
     const concluidosList = expedientesFiltrados.filter(exp => exp.Estado === 'Concluido');
     const cantConcluidos = concluidosList.length;
 
-    const nominaGlobal = cantConcluidos * TARIFA_POR_SINIESTRO;
+    // Cálculo dinámico de Nómina Global sumando la tarifa de cada lugar
+    let nominaGlobal = 0;
+    concluidosList.forEach(exp => {
+        nominaGlobal += obtenerTarifa(exp.Lugar);
+    });
 
     document.getElementById('kpiActivos').innerText = activos;
     document.getElementById('kpiConcluidos').innerText = cantConcluidos;
@@ -154,7 +173,12 @@ function cargarTablaPagos() {
         const listaConcluidos = lista.filter(e => e.Estado === 'Concluido');
         const cantidadConcluidos = listaConcluidos.length;
 
-        const totalQuincena = cantidadConcluidos * TARIFA_POR_SINIESTRO;
+        // Cálculo dinámico para la quincena de este ajustador en específico
+        let totalQuincena = 0;
+        listaConcluidos.forEach(exp => {
+            totalQuincena += obtenerTarifa(exp.Lugar);
+        });
+
         const totalQuincenaFmt = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalQuincena);
 
         let htmlTabla = `
@@ -168,7 +192,7 @@ function cargarTablaPagos() {
                         <span>✅ Concluidos: <strong style="color: #2ecc71;">${cantidadConcluidos}</strong></span>
                         <span class="resumen-nomina-total">
                             💰 Pago Generado: <strong style="color: #2ecc71; font-size: 1.15em;">${totalQuincenaFmt}</strong>
-                            <small style="color: var(--text-muted); display: block; font-size: 0.8em;">(${cantidadConcluidos} x $230)</small>
+                            <small style="color: var(--text-muted); display: block; font-size: 0.8em;">(Basado en zonas)</small>
                         </span>
                     </div>
                 </div>
@@ -190,7 +214,6 @@ function cargarTablaPagos() {
         lista.forEach((exp, index) => {
             const folioPersonal = exp.AjusteID || (index + 1);
 
-            // Re-armar fecha local
             const partesFecha = exp.FechaOcurrencia.split('T')[0].split('-');
             const fechaMx = `${partesFecha[2]}/${partesFecha[1]}/${partesFecha[0]}`;
 
@@ -224,101 +247,77 @@ function cargarTablaPagos() {
 }
 
 // ==========================================
-// 3. MODAL DE SOLO LECTURA
+// 3. MODAL DE SOLO LECTURA (ACTUALIZADO A CSS GRID)
 // ==========================================
 async function abrirModalPagos(ajusteId, folioPersonal) {
     const modal = document.getElementById('modalPagos');
     const modalContenido = document.getElementById('modalPagosContenido');
+    const tarjetaModal = modal.querySelector('.card');
+
+    tarjetaModal.style.width = '1000px';
+    tarjetaModal.style.maxWidth = '95%';
 
     document.getElementById('modalPagosExpId').innerText = `SIN-${folioPersonal.toString().padStart(3, '0')}`;
     modal.style.display = 'flex';
-    modalContenido.innerHTML = '<p style="text-align: center;">Cargando auditoría de documentos...</p>';
+    modalContenido.innerHTML = '<p style="text-align: center; color: var(--primary-color);">Cargando auditoría financiera...</p>';
 
     try {
         const resDocs = await fetch(`http://localhost:3000/api/documentos/${ajusteId}`);
         const resInfo = await fetch(`http://localhost:3000/api/ajustes/${ajusteId}`);
 
-        let htmlContenido = '';
-
-        if (resInfo.ok) {
+        if (resInfo.ok && resDocs.ok) {
             const info = await resInfo.json();
+            const datosDocs = await resDocs.json();
             const esConcluido = (info.estado === 'Concluido');
+            let tarifaIndividual = obtenerTarifa(info.lugar);
+            let comisionFmt = esConcluido ? new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(tarifaIndividual) : "$0.00 (Pendiente)";
 
-            let comisionFmt = "$0.00 (Pendiente)";
-            if (esConcluido) {
-                comisionFmt = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(TARIFA_POR_SINIESTRO);
-            }
+            let htmlArchivos = '';
+            let cantArchivos = 0;
 
-            htmlContenido += `
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; background: var(--panel-bg); padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid var(--border-color);">
-                    <div><span style="font-size: 0.8em; color: var(--text-muted);">Lugar (Ciudad/Zona)</span><br><strong style="color: var(--text-color);">${info.lugar || 'N/A'}</strong></div>
-                    <div><span style="font-size: 0.8em; color: var(--text-muted);">Tipo de Seguro</span><br><strong style="color: var(--text-color);">${info.seguro || 'N/A'}</strong></div>
-                    <div><span style="font-size: 0.8em; color: var(--text-muted);">Quincena Contable</span><br><strong style="color: var(--text-color);">${obtenerNombreQuincena(info.fechaOcurrencia)}</strong></div>
-                    <div><span style="font-size: 0.8em; color: var(--text-muted);">Monto del Accidente</span><br><strong style="color: var(--text-color);">${info.monto ? '$' + info.monto : 'N/A'}</strong></div>
-                </div>
+            datosDocs.documentos.forEach(doc => {
+                if (doc.RutaArchivo !== 'NO_REQUERIDO') cantArchivos++;
+                const nombreArchivo = doc.RutaArchivo === 'NO_REQUERIDO' ? '<span style="color: var(--warning-color); font-style: italic;">No requerido</span>' : doc.RutaArchivo.split('\\').pop().split('/').pop();
+                htmlArchivos += `
+                    <div style="background: var(--bg-color); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                        <strong style="color: var(--primary-color);">${doc.TipoDocumento}</strong>
+                        <span style="color: var(--text-muted); font-size: 0.75em;">${nombreArchivo}</span>
+                    </div>`;
+            });
 
-                <div style="background: var(--bg-color); padding: 10px 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid ${esConcluido ? '#2ecc71' : 'var(--border-color)'}; display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <span style="font-size: 0.85em; font-weight: bold; color: var(--text-color);">💰 Pago fijo por este siniestro:</span><br>
-                        <small style="color: var(--text-muted);">${esConcluido ? `(Tarifa de $230)` : 'Aún no se ha concluido el caso'}</small>
+            modalContenido.innerHTML = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 10px;">
+                    <!-- COLUMNA IZQ: Info Financiera -->
+                    <div style="display: flex; flex-direction: column; gap: 15px;">
+                        <div style="background: var(--bg-color); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <h4 style="margin: 0 0 5px 0; color: var(--text-color);">Liquidación del Ajustador</h4>
+                                <span style="font-size: 0.8em; color: var(--text-muted);">${info.lugar} • ${obtenerNombreQuincena(info.fechaOcurrencia)}</span>
+                            </div>
+                            <strong style="font-size: 1.5em; color: ${esConcluido ? 'var(--success-color)' : 'var(--text-muted)'};">${comisionFmt}</strong>
+                        </div>
+                        
+                        <div style="background: var(--bg-color); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); flex: 1;">
+                            <h4 style="margin: 0 0 10px 0; color: var(--text-color);">Estado del Trámite</h4>
+                            <p style="margin: 0 0 15px 0; font-size: 1em; color: var(--text-color); font-weight: bold;">${info.estado}</p>
+                            <p style="margin: 0; font-size: 0.85em; color: var(--text-muted); font-style: italic;">"${info.relatoria || 'Sin relatoría'}"</p>
+                        </div>
                     </div>
-                    <strong style="font-size: 1.1em; color: ${esConcluido ? '#2ecc71' : 'var(--text-muted)'};">${comisionFmt}</strong>
-                </div>
 
-                <div style="background: var(--bg-color); padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid var(--border-color);">
-                    <p style="margin: 0 0 5px 0; font-size: 0.85em; font-weight: bold;">Historial de Reportes:</p>
-                    <div style="background: var(--panel-bg); padding: 10px; border-radius: 5px; max-height: 100px; overflow-y: auto; border: 1px solid var(--border-color);">
-                        <p style="margin: 0; font-size: 0.9em; color: var(--text-muted); font-style: italic; white-space: pre-wrap;">"Ajustador: ${info.relatoria || 'Sin relatoría'}"</p>
-                        ${info.respuestaAnalista ? `
-                            <hr style="border: 0; border-top: 1px dashed var(--border-color); margin: 10px 0;">
-                            <p style="margin: 0; font-size: 0.9em; color: var(--text-color); white-space: pre-wrap;">Analista: ${info.respuestaAnalista}</p>
-                        ` : ''}
-                    </div>
-
-                    <div style="background-color: #3498db20; border-left: 4px solid #3498db; padding: 10px; border-radius: 4px; margin-top: 15px;">
-                        <p style="margin: 0; font-size: 0.85em; color: #3498db; font-weight: bold;">👁️ El caso está <strong>${info.estado}</strong>. Modo Consulta activado.</p>
+                    <!-- COLUMNA DER: Auditoría Docs -->
+                    <div style="background: var(--bg-color); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h4 style="margin: 0; color: var(--text-color);">Documentos Validados</h4>
+                            ${cantArchivos > 0 ? `<button onclick="descargarArchivosMasivo(${ajusteId})" style="background: transparent; color: var(--primary-color); border: none; cursor: pointer; font-size: 0.8em; font-weight: bold;">📥 Descargar(${cantArchivos})</button>` : ''}
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            ${htmlArchivos}
+                        </div>
                     </div>
                 </div>
-                <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 15px 0;">
-                <h4 style="margin: 0 0 10px 0;">Documentación a Auditar</h4>
             `;
         }
-
-        if (resDocs.ok) {
-            const datosDocs = await resDocs.json();
-            ['DOA', 'ORD', 'PM'].forEach(tipo => {
-                const doc = datosDocs.documentos.find(d => d.TipoDocumento === tipo);
-                if (doc) {
-                    if (doc.RutaArchivo === 'NO_REQUERIDO') {
-                        htmlContenido += `
-                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-color); border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 10px;">
-                                <strong style="color: var(--primary-color); width: 50px;">${doc.TipoDocumento}</strong>
-                                <span style="color: #f39c12; font-style: italic; font-size: 0.85em; flex-grow: 1; text-align: center;">Marcado como No Requerido</span>
-                            </div>
-                        `;
-                    } else {
-                        const nombreArchivo = doc.RutaArchivo.split('\\').pop().split('/').pop();
-                        const rutaWeb = doc.RutaArchivo.replace(/\\/g, '/');
-                        htmlContenido += `
-                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-color); border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 10px;">
-                                <strong style="color: var(--primary-color); width: 50px;">${doc.TipoDocumento}</strong>
-                                <span style="color: var(--text-muted); font-size: 0.85em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; flex-grow: 1; text-align: center;">${nombreArchivo}</span>
-                                <a href="http://localhost:3000/${rutaWeb}" target="_blank" style="background: var(--primary-color); color: white; padding: 5px 12px; border-radius: 5px; text-decoration: none; font-size: 0.8em; font-weight: bold; white-space: nowrap;">👁️ Abrir Archivo</a>
-                            </div>
-                        `;
-                    }
-                } else {
-                    htmlContenido += `
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-color); border-radius: 8px; border: 1px dashed #e74c3c; margin-bottom: 10px;">
-                            <strong style="color: #e74c3c; width: 50px;">${tipo}</strong>
-                            <span style="color: #e74c3c; font-size: 0.85em; font-weight: bold; flex-grow: 1; text-align: right;">Aún no entregado</span>
-                        </div>
-                    `;
-                }
-            });
-        }
-        modalContenido.innerHTML = htmlContenido;
-    } catch (error) { modalContenido.innerHTML = '<p style="color: #e74c3c;">Error de conexión.</p>'; }
+    } catch (error) { modalContenido.innerHTML = '<p style="color: var(--danger-color);">Error de conexión.</p>'; }
 }
 
 function cerrarModalPagos() {
@@ -377,3 +376,136 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('nombreUsuarioUI').innerText = `Hola, ${nombreUsuario}`;
     descargarExpedientesDesdeBD();
 });
+
+// ==========================================
+// PERFIL DE USUARIO (UNIVERSAL)
+// ==========================================
+const miUsuarioIdGbl = localStorage.getItem('aspv_id');
+
+async function cargarDatosPerfil() {
+    if (!miUsuarioIdGbl) return;
+    try {
+        const res = await fetch(`http://localhost:3000/api/perfil/${miUsuarioIdGbl}`);
+        if (res.ok) {
+            const perfil = await res.json();
+
+            // Actualizar la foto en el header (si existe)
+            const avatarUrl = perfil.FotoPerfil ? `http://localhost:3000/${perfil.FotoPerfil}` : 'imagenes/LogoASPV.jpg';
+            const avatarHeader = document.getElementById('avatarHeader');
+            if (avatarHeader) avatarHeader.src = avatarUrl;
+
+            // Llenar el modal (si existe en el DOM actual)
+            const previewFoto = document.getElementById('previewFotoPerfil');
+            if (previewFoto) previewFoto.src = avatarUrl;
+
+            const correoInput = document.getElementById('correoPerfil');
+            if (correoInput) correoInput.value = perfil.Correo;
+
+            const telInput = document.getElementById('telefonoPerfil');
+            if (telInput) telInput.value = perfil.Telefono || '';
+        }
+    } catch (error) { console.error("Error al cargar perfil", error); }
+}
+
+function abrirModalPerfil() {
+    const modal = document.getElementById('modalPerfil');
+    if (modal) modal.style.display = 'flex';
+}
+
+function cerrarModalPerfil() {
+    const modal = document.getElementById('modalPerfil');
+    if (modal) modal.style.display = 'none';
+}
+
+// Vista previa de la foto
+const inputFoto = document.getElementById('inputFotoPerfil');
+if (inputFoto) {
+    inputFoto.addEventListener('change', function(e) {
+        if (e.target.files && e.target.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(ev) { document.getElementById('previewFotoPerfil').src = ev.target.result; }
+            reader.readAsDataURL(e.target.files[0]);
+        }
+    });
+}
+
+// Guardar en Base de Datos
+const formPerfil = document.getElementById('formPerfil');
+if (formPerfil) {
+    formPerfil.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        mostrarToast("Guardando perfil...", "info");
+
+        const formData = new FormData();
+        formData.append('telefono', document.getElementById('telefonoPerfil').value.trim());
+
+        const foto = document.getElementById('inputFotoPerfil').files[0];
+        if (foto) formData.append('fotoPerfil', foto);
+
+        try {
+            const res = await fetch(`http://localhost:3000/api/perfil/${miUsuarioIdGbl}`, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (res.ok) {
+                mostrarToast("✅ Perfil actualizado.", "success");
+                cargarDatosPerfil(); // Recarga la foto
+                cerrarModalPerfil();
+            } else {
+                mostrarToast("❌ Error al guardar perfil.", "error");
+            }
+        } catch (error) {
+            mostrarToast("❌ Error de red.", "error");
+        }
+    });
+}
+
+// Llamar automáticamente al entrar
+document.addEventListener("DOMContentLoaded", () => {
+    cargarDatosPerfil();
+});
+
+// ==========================================
+// FUNCIÓN: DESCARGA MASIVA (ESTILO ANALISTA CON BLOB)
+// ==========================================
+async function descargarArchivosMasivo(ajusteId) {
+    try {
+        const resDocs = await fetch(`http://localhost:3000/api/documentos/${ajusteId}`);
+        if (!resDocs.ok) return;
+
+        const data = await resDocs.json();
+        const archivosValidos = data.documentos.filter(d => d.RutaArchivo !== 'NO_REQUERIDO');
+
+        if (archivosValidos.length === 0) return mostrarToast("⚠️ No hay archivos para descargar.", "warning");
+
+        mostrarToast(`⏳ Descargando ${archivosValidos.length} archivo(s)...`, "info");
+
+        for (let doc of archivosValidos) {
+            try {
+                const url = `http://localhost:3000/${doc.RutaArchivo.replace(/\\/g, '/')}`;
+                const res = await fetch(url);
+                if (!res.ok) throw new Error("No se pudo obtener");
+
+                const blob = await res.blob();
+                const blobUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = doc.RutaArchivo.split('\\').pop().split('/').pop() || 'documento_aspv';
+
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(blobUrl);
+            } catch (e) {
+                console.error("Error descargando:", doc.RutaArchivo);
+            }
+            // Pausa de medio segundo para que Chrome no lo bloquee como "Spam"
+            await new Promise(r => setTimeout(r, 500));
+        }
+        mostrarToast("✅ Todas las descargas han finalizado.", "success");
+
+    } catch (error) {
+        mostrarToast("❌ Error al conectar con los archivos.", "error");
+    }
+}
