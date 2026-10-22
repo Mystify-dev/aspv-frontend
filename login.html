@@ -34,6 +34,31 @@
             color: var(--text-color);
             box-sizing: border-box;
         }
+
+        /* Estilos para notificaciones dinámicas del Login */
+        .toast {
+            min-width: 250px;
+            color: #fff;
+            text-align: center;
+            border-radius: 8px;
+            padding: 16px;
+            position: fixed;
+            z-index: 10000;
+            left: 50%;
+            bottom: 30px;
+            transform: translateX(-50%);
+            font-size: 0.9em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            animation: fadein 0.5s, fadeout 0.5s 3s;
+        }
+        .toast.error { background-color: #e74c3c; }
+        .toast.success { background-color: #2ecc71; }
+        .toast.info { background-color: #3498db; }
+        @keyframes fadein { from { bottom: 0; opacity: 0; } to { bottom: 30px; opacity: 1; } }
+        @keyframes fadeout { from { bottom: 30px; opacity: 1; } to { bottom: 0; opacity: 0; } }
     </style>
 </head>
 <body>
@@ -60,10 +85,193 @@
     </form>
 </div>
 
-<script src="login.js"></script>
+<!-- MODAL DE TÉRMINOS Y CONDICIONES (Bloqueante) -->
+<div id="modalTerminos" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; justify-content: center; align-items: center; padding: 20px;">
+    <div style="background: var(--bg-color, #fff); width: 700px; max-width: 100%; border-radius: 12px; padding: 30px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); display: flex; flex-direction: column; max-height: 90vh;">
+        <h2 style="margin-top: 0; color: var(--primary-color, #2c3e50); text-align: center;">Términos y Condiciones ASPV</h2>
+        <p style="text-align: center; color: var(--text-muted, #7f8c8d); font-size: 0.9em; margin-top: -10px;">Debes leer y aceptar el reglamento para acceder a la plataforma.</p>
 
-<!-- Contenedor para Notificaciones Toast -->
-<div id="toast-container"></div>
+        <div style="overflow-y: auto; flex: 1; padding: 20px; background: var(--panel-bg, #f8f9fa); border: 1px solid var(--border-color, #ddd); border-radius: 8px; margin-bottom: 20px; font-size: 0.85em; color: var(--text-color, #333); line-height: 1.6; text-align: justify;">
+            <h3 style="text-align: center;">TÉRMINOS Y CONDICIONES DE USO DE LA PLATAFORMA DIGITAL ASPV</h3>
+            <p style="text-align: center; font-weight: bold;">Última actualización: 22 de octubre de 2026 | Versión del documento: 1.0</p>
+
+            <h4>Datos de Identificación</h4>
+            <ul>
+                <li><strong>Denominación Social:</strong> ASISTENCIA Y SERVICIO DE PROTECCION VIAL, S.A. DE C.V.</li>
+                <li><strong>RFC:</strong> ASP220210P18</li>
+                <li><strong>Domicilio Fiscal:</strong> Calle Cardenal #41, Colonia Buenavista, С.Р. 24157, Ciudad del Carmen, Campeche, México</li>
+                <li><strong>Contacto Oficial:</strong> admon.aspv@outlook.com</li>
+            </ul>
+
+            <p>El presente documento establece los Términos y Condiciones de Uso (en adelante, los "Términos") que regulan el acceso, navegación, uso operativo y responsabilidades derivadas de la utilización del sistema y portal web institucional de ASPV (en adelante, la "Plataforma"), operado por ASISTENCIA Y SERVICIO DE PROTECCION VIAL, S.A. DE C.V. (en adelante, el "Titular"). Al ingresar, iniciar sesión o interactuar con la Plataforma, toda persona en calidad de usuario (en adelante, el "Usuario") reconoce y acepta expresamente someterse a las estipulaciones aquí contenidas. En caso de no estar de acuerdo con la totalidad de estos Términos, el Usuario deberá abstenerse de utilizar el sistema de manera inmediata.</p>
+
+            <h4>PRIMERA. OBJETO Y ALCANCE DEL SERVICIO</h4>
+            <p>La Plataforma constituye una herramienta tecnológica de carácter administrativo, operativo e informativo destinada a la gestión, captura, consulta, seguimiento y almacenamiento de expedientes, reportes de hechos de tránsito, siniestros viales y documentación operativa complementaria en el marco de las actividades de ajuste y asistencia vial del Titular.</p>
+            <p>El acceso a la Plataforma es restringido y condicionado a la asignación previa de credenciales autorizadas por el Titular, de acuerdo con las funciones laborales, profesionales o contractuales que vinculen al Usuario con la organización.</p>
+
+            <h4>SEGUNDA. CUENTAS, ACCESO Y SEGURIDAD</h4>
+            <ol>
+                <li><strong>Carácter personal e intransferible:</strong> Las credenciales de acceso (nombre de usuario, contraseña, tokens de sesión o códigos de autenticación) son estrictamente personales, confidenciales e intransferibles. Queda prohibida la cesión, préstamo o divulgación de estas a cualquier tercero.</li>
+                <li><strong>Custodia y responsabilidad:</strong> El Usuario es el único responsable de la debida custodia de sus credenciales y de todas las actividades, registros y alteraciones que se ejecuten desde su cuenta de acceso.</li>
+                <li><strong>Notificación de vulneraciones:</strong> En caso de sospecha razonable de extravío, sustracción, robo o uso no autorizado de sus credenciales, el Usuario deberá dar aviso inmediato al área administrativa a través del correo admon.aspv@outlook.com para la revocación o reconfiguración del acceso.</li>
+            </ol>
+
+            <h4>TERCERA. POLÍTICA DE USO ACEPTABLE Y PROHIBICIONES</h4>
+            <p>El Usuario se compromete a operar la Plataforma exclusivamente para el cumplimiento de sus labores asignadas y en apego a la legislación aplicable. Queda estrictamente prohibido:</p>
+            <ul>
+                <li><strong>Extracción no autorizada:</strong> Utilizar scripts, arañas, herramientas de scraping, minería de datos o sistemas automatizados para consultar, copiar o extraer información de la base de datos sin autorización previa por escrito.</li>
+                <li><strong>Vulneración de seguridad:</strong> Intentar sondear, escanear vulnerabilidades, ejecutar ingeniería inversa, descompilar código o eludir las medidas de autenticación y seguridad perimetral de la infraestructura de ASPV.</li>
+                <li><strong>Falsedad de información:</strong> Ingresar, modificar o suprimir datos de siniestros, fotografías, identidades o peritajes de forma deliberadamente falsa, inexacta o con la intención de alterar hechos reales.</li>
+                <li><strong>Distribución no autorizada:</strong> Descargar, reenviar o exponer evidencia pericial, fotográfica o documental fuera de los canales autorizados por la organización.</li>
+                <li><strong>Inyección de código malicioso:</strong> Cargar archivos que contengan virus, troyanos, ransomware o cualquier elemento que afecte el funcionamiento del servidor, la base de datos o los equipos de otros usuarios.</li>
+            </ul>
+
+            <h4>CUARTA. CONFIDENCIALIDAD Y TRATAMIENTO DE DATOS SENSIBLES</h4>
+            <ol>
+                <li><strong>Deber de secrecía:</strong> La información alojada en la Plataforma incluye datos operativos reservados, información pericial y datos personales de terceros involucrados en hechos viales (tales como nombres, identificaciones oficiales, números de póliza, placas vehiculares e información médica preliminar). El Usuario asume la obligación de guardar absoluta confidencialidad sobre dicha información, obligación que subsistirá aun después de concluida su relación operativa o laboral con el Titular.</li>
+                <li><strong>Alineación legal:</strong> Todo tratamiento de información se rige por lo dispuesto en la legislación aplicable en materia de protección de datos personales en posesión de particulares. Los detalles sobre recolección, finalidad y ejercicio de derechos ARCO se encuentran estipulados en el Aviso de Privacidad institucional de ASPV.</li>
+            </ol>
+
+            <h4>QUINTA. PROPIEDAD INTELECTUAL</h4>
+            <ol>
+                <li><strong>Titularidad del software:</strong> Todo el código fuente, código objeto, arquitectura de software, bases de datos, interfaces gráficas, diseño visual, logotipos, marcas registradas y documentación técnica asociada a la Plataforma son propiedad exclusiva de ASISTENCIA Y SERVICIO DE PROTECCION VIAL, S.A. DE C.V. o han sido licenciados legalmente para su uso. Ninguna disposición de estos Términos confiere al Usuario derechos de propiedad, cesión o licencia comercial sobre dichos elementos.</li>
+                <li><strong>Titularidad de la información operativa:</strong> Todos los expedientes, reportes, registros de auditoría y evidencia documental cargados en la Plataforma en el ejercicio de las funciones asignadas forman parte del acervo documental exclusivo de la empresa.</li>
+            </ol>
+
+            <h4>SEXTA. DISPONIBILIDAD, MANTENIMIENTO Y RESPALDOS</h4>
+            <ol>
+                <li><strong>Régimen de provisión:</strong> La Plataforma se pone a disposición bajo la modalidad "tal cual" (as is) y "según disponibilidad". El Titular no garantiza la disponibilidad ininterrumpida o libre de errores de los servicios en todo momento.</li>
+                <li><strong>Ventanas de mantenimiento:</strong> El Titular se reserva el derecho de suspender temporalmente el acceso para tareas de mantenimiento preventivo, correctivo, actualización de servidores o despliegue de nuevas funcionalidades, procurando minimizar el impacto operativo.</li>
+                <li><strong>Límite de responsabilidad tecnológica:</strong> El Titular no responderá por interrupciones atribuibles a fallas de proveedores de telecomunicaciones ajenos, caídas generales de internet, incidentes en la red local del Usuario o mal funcionamiento del hardware utilizado por este.</li>
+            </ol>
+
+            <h4>SÉPTIMA. SUSPENSIÓN Y REVOCACIÓN DE ACCESO</h4>
+            <p>El Titular podrá suspender temporalmente o cancelar de manera definitiva el acceso a cualquier cuenta de Usuario, sin necesidad de resolución judicial previa, en los siguientes supuestos:</p>
+            <ul>
+                <li>Violación acreditada o sospecha fundada de incumplimiento de estos Términos.</li>
+                <li>Conclusión de la relación laboral, contractual o de colaboración entre el Usuario y ASPV.</li>
+                <li>Mandato expreso de autoridad administrativa o judicial competente.</li>
+                <li>Detección de patrones anómalos de tráfico o alertas de ciberseguridad que pongan en riesgo la integridad de la base de datos institucional.</li>
+            </ul>
+
+            <h4>OCTAVA. MODIFICACIONES A LOS TÉRMINOS</h4>
+            <p>El Titular se reserva el derecho de modificar o actualizar estos Términos en cualquier momento para reflejar cambios legales, mejoras en la arquitectura del sistema o nuevos requerimientos de seguridad.</p>
+            <p>Cualquier cambio entrará en vigor a partir de su publicación en la Plataforma. En caso de modificaciones sustanciales, se notificará al Usuario mediante aviso en pantalla al momento de iniciar sesión, solicitando la confirmación de su lectura y aceptación para continuar utilizando el servicio.</p>
+
+            <h4>NOVENA. INTEGRIDAD Y SEPARABILIDAD</h4>
+            <p>Si cualquier disposición contenida en este instrumento fuera declarada nula, inválida o inejecutable por un tribunal competente, dicha determinación afectará únicamente a la cláusula en cuestión, manteniéndose vigentes y con plena validez todas las demás disposiciones del documento.</p>
+
+            <h4>DÉCIMA. JURISDICCIÓN Y LEGISLACIÓN APLICABLE</h4>
+            <p>Para la interpretación, cumplimiento y resolución de cualquier controversia o disputa derivada del acceso o uso de esta Plataforma, las partes se someten de manera expresa a las leyes vigentes de los Estados Unidos Mexicanos y a la competencia de los tribunales competentes de Ciudad del Carmen, Campeche, renunciando expresamente a cualquier otro fuero que por razón de sus domicilios presentes o futuros pudiera corresponderles.</p>
+        </div>
+
+        <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; margin-bottom: 20px; background: rgba(52, 152, 219, 0.1); padding: 15px; border-radius: 8px; border: 1px solid rgba(52, 152, 219, 0.3);">
+            <input type="checkbox" id="checkAceptoTerminos" onchange="document.getElementById('btnAceptarTerminos').disabled = !this.checked; document.getElementById('btnAceptarTerminos').style.opacity = this.checked ? '1' : '0.5';" style="width: 20px; height: 20px; margin-top: 2px;">
+            <span style="font-weight: bold; font-size: 0.9em; color: var(--text-color, #333);">He leído, comprendo y acepto los Términos y Condiciones de uso interno y confidencialidad de ASPV. Entiendo que mi aceptación quedará registrada.</span>
+        </label>
+
+        <button id="btnAceptarTerminos" disabled onclick="procesarAceptacion()" style="background: #2ecc71; color: white; border: none; padding: 15px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1.1em; opacity: 0.5; transition: 0.3s; width: 100%;">
+            Firmar Digitalmente y Continuar al Sistema ➔
+        </button>
+    </div>
+</div>
+
+<script>
+    // ==========================================
+    // LÓGICA DEL LOGIN Y ACEPTACIÓN DE TÉRMINOS
+    // ==========================================
+    const VERSION_ACTUAL_TERMINOS = '1.0';
+    let usuarioPendienteGlobal = null;
+
+    document.getElementById('formLogin').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const correo = document.getElementById('loginCorreo').value;
+        const password = document.getElementById('loginPassword').value;
+
+        try {
+            const respuesta = await fetch('http://localhost:3000/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ correo, password })
+            });
+
+            const data = await respuesta.json();
+
+            if (data.exito) {
+                usuarioPendienteGlobal = data.usuario;
+
+                // Validamos si ya firmó la versión actual
+                if (!usuarioPendienteGlobal.terms_accepted || usuarioPendienteGlobal.terms_version !== VERSION_ACTUAL_TERMINOS) {
+                    // Bloqueo: Mostramos el modal de Términos
+                    document.getElementById('modalTerminos').style.display = 'flex';
+                } else {
+                    // Acceso concedido
+                    accederAlSistema(usuarioPendienteGlobal);
+                }
+            } else {
+                mostrarToast(data.error, 'error');
+            }
+        } catch (error) {
+            mostrarToast('Error al intentar conectar con el servidor.', 'error');
+        }
+    });
+
+    async function procesarAceptacion() {
+        try {
+            const respuesta = await fetch('http://localhost:3000/api/aceptar-terminos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    usuarioId: usuarioPendienteGlobal.UsuarioID,
+                    version: VERSION_ACTUAL_TERMINOS
+                })
+            });
+
+            const data = await respuesta.json();
+
+            if (respuesta.ok && data.exito) {
+                document.getElementById('modalTerminos').style.display = 'none';
+                accederAlSistema(usuarioPendienteGlobal);
+            } else {
+                mostrarToast('Hubo un error al registrar tu firma. Intenta nuevamente.', 'error');
+            }
+        } catch (error) {
+            mostrarToast('Error de conexión al guardar los términos.', 'error');
+        }
+    }
+
+    function accederAlSistema(usuario) {
+        localStorage.setItem('aspv_id', usuario.UsuarioID);
+        localStorage.setItem('aspv_nombre', usuario.Nombre);
+        localStorage.setItem('aspv_rol', usuario.Rol);
+
+        // Enrutamiento en base al rol
+        if (usuario.Rol === 'Admin') window.location.href = 'admin.html';
+        else if (usuario.Rol === 'Ajustador') window.location.href = 'index.html';
+        else if (usuario.Rol === 'Analista') window.location.href = 'resumen.html';
+        else if (usuario.Rol === 'Analista de Pagos') window.location.href = 'pagos.html';
+    }
+
+    function mostrarToast(mensaje, tipo = 'info') {
+        const container = document.getElementById('toast-container');
+        if (!container) return alert(mensaje); // Fallback
+
+        const toast = document.createElement('div');
+        toast.className = `toast ${tipo}`;
+
+        let icono = 'ℹ️';
+        if (tipo === 'success') icono = '✅';
+        if (tipo === 'error') icono = '❌';
+        if (tipo === 'warning') icono = '⚠️';
+
+        toast.innerHTML = `<span>${icono}</span> <span>${mensaje}</span>`;
+        container.appendChild(toast);
+
+        setTimeout(() => {
+            if (toast.parentNode) toast.parentNode.removeChild(toast);
+        }, 3500);
+    }
+</script>
 
 </body>
 </html>

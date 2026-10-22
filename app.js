@@ -50,6 +50,34 @@ function cambiarTema(tema) {
 function cambiarTexto(tamano) { document.documentElement.setAttribute('data-text', tamano); localStorage.setItem('aspv_texto', tamano); }
 
 // ==========================================
+// WEBSOCKETS (SOCKET.IO) - NOTIFICACIONES EN TIEMPO REAL
+// ==========================================
+// 1. Conectarnos al backend en el puerto 3000
+const socket = io("http://localhost:3000");
+
+socket.on("connect", () => {
+    console.log("🟢 Conectado al servidor de chat de ASPV");
+    // Le informamos al backend quién se conectó (usamos el ID de la sesión real)
+    if (miUsuarioIdGbl) {
+        socket.emit("registerUser", miUsuarioIdGbl);
+    }
+});
+
+// 3. Escuchar notificaciones para pintar el globo rojo
+socket.on("updateUnreadBadge", (data) => {
+    console.log("¡Alerta de nuevo mensaje de chat!", data);
+
+    // Buscamos el ícono rojo en tu HTML (asegúrate de que el id coincida en tu vista, en index.html está como badgeNotificaciones)
+    const badge = document.getElementById("badgeNotificaciones");
+
+    if (badge) {
+        badge.innerText = data.count; // Cambia el número
+        badge.style.display = data.count > 0 ? "block" : "none"; // Hace visible el circulito
+    }
+});
+
+
+// ==========================================
 // LÓGICA DE NEGOCIO ASPV (CON 2DA ATENCIÓN)
 // ==========================================
 let expedienteActualId = null;

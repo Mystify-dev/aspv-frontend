@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASPV - Mensajes Operativos</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .media-grid img { width: 100%; height: 75px; object-fit: cover; border-radius: 8px; cursor: pointer; transition: opacity 0.2s; }
+        .media-grid img:hover { opacity: 0.8; }
+    </style>
+</head>
+<body>
+
+<div class="chat-container">
+
+    <!-- 1. Lista de Contactos (Izquierda) -->
+    <div class="chat-sidebar">
+        <div class="chat-header">
+            <button id="btnVolverInicio" style="width: 100%; margin-bottom: 15px; background: var(--primary-color); color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: bold; transition: 0.2s;">
+                🏠 Volver al inicio
+            </button>
+
+            <h2 style="margin: 0; font-size: 1.2em;">Mensajes Operativos</h2>
+            <input type="text" placeholder="🔍 Buscar por nombre, correo o ID..." style="width: 100%; padding: 10px; margin-top: 15px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); box-sizing: border-box;">
+        </div>
+        <div style="overflow-y: auto; flex: 1;">
+
+            <div id="itemChatKevin" style="padding: 15px; border-bottom: 1px solid var(--border-color); display: flex; gap: 15px; cursor: pointer; transition: background 0.2s;">
+                <div style="width: 45px; height: 45px; background: #3498db; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">KM</div>
+                <div style="flex: 1;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <strong style="color: var(--text-color);">Kevin Morales</strong>
+                        <span style="font-size: 0.75em; color: var(--text-muted);">15:42</span>
+                    </div>
+                    <p style="margin: 5px 0 0 0; font-size: 0.85em; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 180px;">Ya subí las 4 fotos del Versa...</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 2. Ventana de Conversación (Centro) -->
+    <div class="chat-main">
+
+        <div id="pantallaInicioChat" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-muted); text-align: center; background-color: var(--panel-bg);">
+            <div style="font-size: 5em; margin-bottom: 20px;">💬</div>
+            <h2 style="margin: 0; color: var(--text-color);">ASPV Mensajes</h2>
+            <p>Selecciona un chat de la lista para comenzar a enviar mensajes.</p>
+        </div>
+
+        <div id="chatActivo" style="display: none; flex-direction: column; height: 100%;">
+
+            <div class="chat-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <button id="btnCerrarChat" style="background: transparent; border: none; font-size: 1.2em; color: var(--text-color); cursor: pointer; padding: 5px; margin-right: 5px;" title="Cerrar chat">⬅️</button>
+
+                    <div id="btnPerfilContacto" style="display: flex; align-items: center; gap: 15px; cursor: pointer; padding: 5px; border-radius: 8px; transition: background 0.2s;" title="Ver detalles del contacto">
+                        <div style="width: 40px; height: 40px; background: #3498db; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">KM</div>
+                        <div>
+                            <h3 style="margin: 0; font-size: 1.1em; color: var(--text-color);">Kevin Morales</h3>
+                            <span style="font-size: 0.8em; color: #2ecc71;">En línea</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Historial de mensajes vacío y con ID -->
+            <div class="chat-messages" id="contenedorMensajes">
+                <!-- Aquí aparecerán los mensajes mágicamente -->
+            </div>
+
+            <!-- Zona de escritura y Menú de Adjuntos -->
+            <div class="chat-input-area" style="position: relative;">
+
+                <!-- MENÚ FLOTANTE ESTILO WHATSAPP (Oculto por defecto) -->
+                <div id="menuAdjuntos" style="display: none; position: absolute; bottom: 65px; left: 15px; background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); flex-direction: column; padding: 10px; gap: 5px; z-index: 100; min-width: 200px;">
+                    <div id="optDocumento" style="display: flex; align-items: center; gap: 15px; padding: 10px 15px; cursor: pointer; border-radius: 8px; transition: background 0.2s;" onmouseover="this.style.background='var(--bg-color)'" onmouseout="this.style.background='transparent'">
+                        <span style="font-size: 1.2em; color: #7f66ff;">📄</span>
+                        <span style="color: var(--text-color); font-weight: 500;">Documento</span>
+                    </div>
+                    <div id="optFotos" style="display: flex; align-items: center; gap: 15px; padding: 10px 15px; cursor: pointer; border-radius: 8px; transition: background 0.2s;" onmouseover="this.style.background='var(--bg-color)'" onmouseout="this.style.background='transparent'">
+                        <span style="font-size: 1.2em; color: #007bff;">🖼️</span>
+                        <span style="color: var(--text-color); font-weight: 500;">Fotos y videos</span>
+                    </div>
+                    <div id="optCamara" style="display: flex; align-items: center; gap: 15px; padding: 10px 15px; cursor: pointer; border-radius: 8px; transition: background 0.2s;" onmouseover="this.style.background='var(--bg-color)'" onmouseout="this.style.background='transparent'">
+                        <span style="font-size: 1.2em; color: #ff2e74;">📷</span>
+                        <span style="color: var(--text-color); font-weight: 500;">Cámara</span>
+                    </div>
+                </div>
+
+                <!-- INPUTS OCULTOS -->
+                <input type="file" id="inputDocumento" multiple accept=".pdf, .doc, .docx, .xls, .xlsx" style="display: none;">
+                <input type="file" id="inputFotos" multiple accept="image/*, video/*" style="display: none;">
+                <input type="file" id="inputCamara" accept="image/*, video/*" capture="environment" style="display: none;">
+
+                <button id="btnClipAdjuntar" style="background: transparent; border: none; font-size: 1.5em; cursor: pointer; color: var(--text-muted);" title="Adjuntar archivo">📎</button>
+
+                <input type="text" id="inputNuevoMensaje" placeholder="Escribe un mensaje..." style="flex: 1; padding: 12px 20px; border-radius: 25px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color);">
+                <button id="btnEnviarMensaje" style="background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 25px; cursor: pointer; font-weight: bold;">Enviar ➔</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- 3. Detalles de Ajustador / Archivos (Derecha) -->
+    <div class="chat-details" id="columnaDetalles">
+        <div style="text-align: right; margin-bottom: -10px; z-index: 10;">
+            <button id="btnCerrarDetalles" style="background: transparent; border: none; color: var(--text-color); cursor: pointer; font-size: 1.2em;">✖</button>
+        </div>
+
+        <div style="text-align: center; margin-bottom: 20px;">
+            <div style="width: 80px; height: 80px; background: #3498db; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 2em; font-weight: bold; margin: 0 auto 10px auto;">KM</div>
+            <h3 style="margin: 0; color: var(--text-color);">Kevin Morales</h3>
+            <p style="margin: 5px 0 0 0; font-size: 0.9em; color: var(--text-muted);">Ajustador Senior de Campo</p>
+            <div style="margin-top: 10px; background: rgba(46, 204, 113, 0.1); border: 1px solid #2ecc71; color: #2ecc71; padding: 5px 10px; border-radius: 20px; font-size: 0.8em; display: inline-block;">En servicio activo</div>
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 15px 0;">
+
+        <div style="font-size: 0.9em; color: var(--text-muted); display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; justify-content: space-between;"><span>ID Empleado</span> <strong style="color: var(--text-color);">ASPV-AJ-042</strong></div>
+            <div style="display: flex; justify-content: space-between;"><span>Zona Cobertura</span> <strong style="color: var(--text-color);">Tabasco Central</strong></div>
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 15px 0;">
+
+        <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <span style="font-size: 0.85em; font-weight: bold; color: var(--text-muted);">Archivos, enlaces y docs (14)</span>
+                <span style="font-size: 0.8em; color: var(--primary-color); cursor: pointer;">Ver todos ➔</span>
+            </div>
+
+            <div class="media-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-bottom: 15px;">
+                <div style="background: var(--bg-color); height: 75px; border-radius: 8px; border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center; font-size: 1.5em;">📸</div>
+                <div style="background: var(--bg-color); height: 75px; border-radius: 8px; border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center; font-size: 1.5em;">🚗</div>
+                <div style="background: var(--bg-color); height: 75px; border-radius: 8px; border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center; font-size: 1.5em; flex-direction: column;">
+                    <span style="font-size: 0.8em;">+11</span>
+                </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <div style="display: flex; gap: 10px; align-items: center; background: var(--bg-color); padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); cursor: pointer;">
+                    <span style="font-size: 1.5em;">📄</span>
+                    <div style="flex: 1; overflow: hidden;">
+                        <p style="margin: 0; font-size: 0.85em; color: var(--text-color); white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">DOA_SIN004.pdf</p>
+                        <span style="font-size: 0.7em; color: var(--text-muted);">640 KB • Hace 1 hora</span>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 10px; align-items: center; background: var(--bg-color); padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); cursor: pointer;">
+                    <span style="font-size: 1.5em;">📊</span>
+                    <div style="flex: 1; overflow: hidden;">
+                        <p style="margin: 0; font-size: 0.85em; color: var(--text-color); white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Valuacion_Previa.xlsx</p>
+                        <span style="font-size: 0.7em; color: var(--text-muted);">410 KB • 08 Octubre</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script src="app.js"></script>
+<script src="chat.js"></script>
+
+</body>
+</html>

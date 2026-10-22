@@ -70,8 +70,14 @@
         <h2 style="margin: 0; color: var(--text-color);">🌐 Foro de Siniestros</h2>
         <div style="flex: 1;"></div>
 
-        <!-- HEADER ACTUALIZADO CON FOTO DE PERFIL -->
+        <!-- HEADER ACTUALIZADO CON FOTO DE PERFIL E ÍCONO DE CHAT -->
         <div class="user-profile" style="display: flex; align-items: center; gap: 15px;">
+            <!-- Ícono de Mensajes / Chat (Redirige a chat.html) -->
+            <div onclick="window.location.href='chat.html'" style="position: relative; cursor: pointer; display: flex; align-items: center;" title="Abrir Mensajes Operativos">
+                <span style="font-size: 1.5em;">💬</span>
+                <span id="mensaje-badge" style="display: none; position: absolute; top: -5px; right: -8px; background: #e74c3c; color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.7em; font-weight: bold; border: 2px solid var(--panel-bg);">0</span>
+            </div>
+
             <img id="avatarHeader" src="imagenes/LogoASPV.jpg" alt="Avatar" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary-color);">
             <strong id="nombreUsuarioUI">Hola, Cargando...</strong>
             <button onclick="abrirModalPerfil()" style="background-color: var(--primary-color); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s;">👤 Mi Perfil</button>
@@ -122,6 +128,11 @@
 </div>
 
 <div id="toast-container"></div>
+
+<!-- Cargar Socket.io para el chat PRIMERO -->
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
+<!-- Cargar tu muro.js DESPUÉS para que ya pueda usar Socket.io -->
 <script src="muro.js"></script>
 
 </body>

@@ -58,14 +58,14 @@ body {
 }
 
 .topbar {
-    min-height: 70px; /* Cambiado para que se adapte si hay muchos filtros */
+    min-height: 70px;
     background-color: var(--bg-color);
     border-bottom: 1px solid var(--border-color);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 15px 30px; /* Un poco más de espacio vertical */
-    flex-wrap: wrap; /* Permite que los elementos bajen si no hay espacio */
+    padding: 15px 30px;
+    flex-wrap: wrap;
     gap: 15px;
 }
 
@@ -74,7 +74,7 @@ body {
     overflow-y: auto;
 }
 
-/* Tarjetas (Cards) - Adaptable a 3 o 4 tarjetas en la misma fila */
+/* Tarjetas (Cards) */
 .kpi-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -171,27 +171,79 @@ body {
     to { opacity: 0; display: none; }
 }
 
-/* ==========================================
-   CENTRADOS DE MODALES (VENTANAS EMERGENTES)
-   ========================================== */
-/* Forzamos al contenedor oscuro a centrar su contenido estrictamente */
+/* CENTRADOS DE MODALES (VENTANAS EMERGENTES) */
 div[id^="modal"][style*="position: fixed"] {
     align-items: center !important;
     justify-content: center !important;
-    padding: 2vh 2vw !important; /* Un poco de respiro en los bordes */
+    padding: 2vh 2vw !important;
     box-sizing: border-box;
 }
 
-/* Respetamos cuando JavaScript ordena ocultarlo */
 div[id^="modal"][style*="display: none"] {
     display: none !important;
 }
 
-/* Reglas para la tarjeta (el cuadro del medio) */
 div[id^="modal"] .card {
-    margin: 0 auto !important; /* Centrado horizontal absoluto */
-    max-height: 90vh !important; /* El cuadro no superará el 90% del alto de la pantalla */
-    max-width: 95vw !important; /* El cuadro no superará el 95% del ancho de la pantalla */
-    overflow-y: auto !important; /* Si el contenido es muy largo, se activa un scroll interno */
-    position: relative; /* Asegura que la "X" para cerrar se mantenga en su lugar */
+    margin: 0 auto !important;
+    max-height: 90vh !important;
+    max-width: 95vw !important;
+    overflow-y: auto !important;
+    position: relative;
+}
+
+/* ==========================================
+   SISTEMA DE MENSAJES (CHAT OPERATIVO)
+   ========================================== */
+.chat-container {
+    display: flex;
+    flex: 1;
+    background-color: var(--bg-color);
+    height: 100%;
+}
+
+.chat-sidebar {
+    width: 350px;
+    background-color: var(--panel-bg);
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--bg-color);
+}
+
+.chat-details {
+    width: 320px;
+    background-color: var(--panel-bg);
+    border-left: 1px solid var(--border-color);
+    display: none;
+    flex-direction: column;
+    padding: 20px;
+}
+
+.chat-header {
+    padding: 15px 20px;
+    background-color: var(--panel-bg);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.chat-messages {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.chat-input-area {
+    padding: 15px 20px;
+    background-color: var(--panel-bg);
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    gap: 10px;
 }
