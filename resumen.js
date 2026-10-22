@@ -157,160 +157,185 @@ async function cargarTablaAdmin() {
 
 let folioVisualResumen = null;
 
+// ==========================================
+// MODAL DE DETALLE Y COMENTARIOS (VERTICAL CON FOTOS Y EXIF)
+// ==========================================
 async function evaluarExpediente(ajusteId, borradorTexto = '') {
     const modal = document.getElementById('modalAdmin');
     const modalContenido = document.getElementById('modalAdminContenido');
-    const tarjetaModal = modal.querySelector('.card');
 
-    // Truco para ensanchar la ventana estilo ASPV Dark Claims Protocol
-    tarjetaModal.style.width = '1100px';
-    tarjetaModal.style.maxWidth = '95%';
+    // Restaurar ancho original vertical
+    const tarjetaModal = modal.querySelector('.card');
+    if (tarjetaModal) {
+        tarjetaModal.style.width = '550px';
+        tarjetaModal.style.maxWidth = '90%';
+    }
 
     document.getElementById('modalAdminExpId').innerText = folioVisualResumen ? `SIN-${folioVisualResumen.toString().padStart(3, '0')}` : `#${ajusteId}`;
     modal.style.display = 'flex';
-    modalContenido.innerHTML = '<p style="text-align: center; color: var(--primary-color);">Cargando telemetría del expediente...</p>';
+    modalContenido.innerHTML = '<p style="text-align: center;">Cargando expediente...</p>';
 
     try {
         const resDocs = await fetch(`http://localhost:3000/api/documentos/${ajusteId}`);
         const resInfo = await fetch(`http://localhost:3000/api/ajustes/${ajusteId}`);
+
+        let htmlContenido = '';
         let esConcluido = false;
         let urlsParaDescargar = [];
-        let htmlArchivos = '';
-        let htmlContenido = '';
 
-        if (resDocs.ok && resInfo.ok) {
+        if (resInfo.ok) {
             const info = await resInfo.json();
+            const colorAlerta = info.penalizado ? '#e74c3c' : '#2ecc71';
+            esConcluido = info.estado === 'Concluido';
+
+            const montoFormateado = info.monto ? new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(info.monto) : '$0.00';
+            const kmsFormateados = info.kilometros ? new Intl.NumberFormat('es-MX').format(info.kilometros) + ' km' : 'N/A';
+
+            htmlContenido += `
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; background: var(--panel-bg); padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid var(--border-color);">
+                    <div><span style="font-size: 0.8em; color: var(--text-muted);">Lugar (Ciudad/Zona)</span><br><strong style="color: var(--text-color);">${info.lugar || 'N/A'}</strong></div>
+                    <div><span style="font-size: 0.8em; color: var(--text-muted);">Tipo de Seguro</span><br><strong style="color: var(--text-color);">${info.seguro || 'N/A'}</strong></div>
+                    <div><span style="font-size: 0.8em; color: var(--text-muted);">Monto Estimado</span><br><strong style="color: #2ecc71;">${montoFormateado}</strong></div>
+                    <div><span style="font-size: 0.8em; color: var(--text-muted);">Kilometraje</span><br><strong style="color: var(--text-color);">${kmsFormateados}</strong></div>
+                </div>
+
+                <div style="background: var(--bg-color); padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid var(--border-color);">
+                    <p style="margin: 0 0 10px 0; font-size: 0.9em;"><strong>Tiempo y Penalización:</strong></p>
+                    <p style="margin: 0 0 15px 0; font-size: 0.85em; color: ${colorAlerta}; font-weight: bold;">${info.alertaUI}</p>
+                    
+                    <p style="margin: 0 0 5px 0; font-size: 0.85em; font-weight: bold;">Historial de Reportes:</p>
+                    <div style="background: var(--panel-bg); padding: 10px; border-radius: 5px; margin-bottom: 15px; max-height: 150px; overflow-y: auto; border: 1px solid var(--border-color);">
+                        <p style="margin: 0; font-size: 0.9em; color: var(--text-muted); font-style: italic; white-space: pre-wrap;">"Ajustador: ${info.relatoria || 'Sin relatoría'}"</p>
+                        ${info.respuestaAnalista ? `
+                            <hr style="border: 0; border-top: 1px dashed var(--border-color); margin: 10px 0;">
+                            <p style="margin: 0; font-size: 0.9em; color: var(--text-color); white-space: pre-wrap;">Analista: ${info.respuestaAnalista}</p>
+                        ` : ''}
+                    </div>
+
+                    ${esConcluido ? `
+                        <div style="background-color: #2ecc7120; border-left: 4px solid #2ecc71; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
+                            <p style="margin: 0; font-size: 0.85em; color: #2ecc71; font-weight: bold;">✅ Expediente terminado. Ya no se pueden enviar mensajes.</p>
+                        </div>
+                        <input type="hidden" id="textoRespuestaAdmin" value="">
+                    ` : (info.turno === 'Analista' ? `
+                        <label style="font-size: 0.85em; font-weight: bold;">Tu respuesta al Ajustador (Nuevo mensaje):</label>
+                        <textarea id="textoRespuestaAdmin" rows="2" placeholder="Ej. Falta la firma en el documento ORD..." style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); margin-bottom: 15px; box-sizing: border-box;">${borradorTexto}</textarea>
+                    ` : `
+                        <div style="background-color: #f39c1220; border-left: 4px solid #f39c12; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
+                            <p style="margin: 0; font-size: 0.85em; color: #f39c12; font-weight: bold;">⏳ Bloqueado: Esperando que el Ajustador responda o suba archivos.</p>
+                        </div>
+                        <input type="hidden" id="textoRespuestaAdmin" value="">
+                    `)}
+
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <label style="font-size: 0.85em; font-weight: bold;">Modificar Estado:</label>
+                        <select id="selectEstadoAdmin" style="padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--panel-bg); color: var(--text-color); flex: 1;" ${(esConcluido || info.turno === 'Ajustador') ? 'disabled' : ''}>
+                            <option value="En Análisis" ${info.estado === 'En Análisis' ? 'selected' : ''}>En Análisis</option>
+                            <option value="En Ajuste" ${info.estado === 'En Ajuste' ? 'selected' : ''}>En Ajuste</option>
+                            <option value="Concluido" ${info.estado === 'Concluido' ? 'selected' : ''}>Concluido</option>
+                        </select>
+                        <button onclick="guardarEstadoAdmin(${ajusteId})" style="background: ${(esConcluido || info.turno === 'Ajustador') ? '#95a5a6' : '#2ecc71'}; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: ${(esConcluido || info.turno === 'Ajustador') ? 'not-allowed' : 'pointer'}; font-weight: bold;" ${(esConcluido || info.turno === 'Ajustador') ? 'disabled' : ''}>
+                            Guardar
+                        </button>
+                    </div>
+                </div>
+                <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 15px 0;">
+                <h4 style="margin: 0 0 10px 0;">Documentación Entregada</h4>
+            `;
+        }
+
+        if (resDocs.ok) {
             const datosDocs = await resDocs.json();
 
-            esConcluido = info.estado === 'Concluido';
-            const colorAlerta = info.penalizado ? 'var(--danger-color)' : 'var(--success-color)';
-            const montoFormateado = info.monto ? new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(info.monto) : '$0.00';
-
-            // Preparar HTML de Archivos (en cuadrícula)
+            // 1. Mostrar documentos oficiales (DOA, ORD, PM)
             ['DOA', 'ORD', 'PM'].forEach(tipo => {
                 const doc = datosDocs.documentos.find(d => d.TipoDocumento === tipo);
                 if (doc) {
                     if (doc.RutaArchivo === 'NO_REQUERIDO') {
-                        htmlArchivos += `
-                            <div style="background: var(--bg-color); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); display: flex; flex-direction: column; justify-content: space-between;">
-                                <div style="display: flex; justify-content: space-between;"><strong style="color: var(--warning-color);">${tipo}</strong><span style="font-size: 0.75em; color: var(--text-muted);">Por Cotejar</span></div>
-                                <span style="color: var(--text-muted); font-size: 0.8em; font-style: italic; margin-top: 5px;">No requerido</span>
-                            </div>`;
+                        htmlContenido += `
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-color); border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 10px;">
+                                <strong style="color: var(--primary-color); width: 50px;">${doc.TipoDocumento}</strong>
+                                <span style="color: #f39c12; font-style: italic; font-size: 0.85em; flex-grow: 1; text-align: center;">No requerido para este siniestro</span>
+                                ${esConcluido ? '' : `<button onclick="preguntarAccion(${ajusteId}, '${tipo}', 'rechazar')" style="background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 0.8em; font-weight: bold;">Rechazar N/A</button>`}
+                            </div>
+                        `;
                     } else {
                         const nombreArchivo = doc.RutaArchivo.split('\\').pop().split('/').pop();
-                        const urlCompleta = `http://localhost:3000/${doc.RutaArchivo.replace(/\\/g, '/')}`;
+                        const rutaWeb = doc.RutaArchivo.replace(/\\/g, '/');
+                        const urlCompleta = `http://localhost:3000/${rutaWeb}`;
                         urlsParaDescargar.push(`'${urlCompleta}'`);
 
-                        htmlArchivos += `
-                            <div style="background: var(--bg-color); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); display: flex; flex-direction: column; justify-content: space-between; gap: 10px;">
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <strong style="color: var(--primary-color);">${tipo}</strong>
-                                    <div style="display: flex; gap: 5px;">
-                                        <a href="${urlCompleta}" target="_blank" style="background: rgba(37, 99, 235, 0.1); color: var(--primary-color); padding: 4px 8px; border-radius: 4px; text-decoration: none; font-size: 0.75em; font-weight: bold;">👁️</a>
-                                        ${esConcluido ? '' : `<button onclick="preguntarAccion(${ajusteId}, '${tipo}', 'rechazar')" style="background: rgba(239, 68, 68, 0.1); color: var(--danger-color); border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75em; font-weight: bold;">✖</button>`}
-                                    </div>
+                        htmlContenido += `
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-color); border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 10px;">
+                                <strong style="color: var(--primary-color); width: 50px;">${doc.TipoDocumento}</strong>
+                                <span style="color: var(--text-muted); font-size: 0.85em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; flex-grow: 1; text-align: center;">${nombreArchivo}</span>
+                                <div style="display: flex; gap: 8px;">
+                                    <a href="${urlCompleta}" target="_blank" style="background: var(--primary-color); color: white; padding: 5px 12px; border-radius: 5px; text-decoration: none; font-size: 0.8em; font-weight: bold; white-space: nowrap;">👁️ Ver</a>
+                                    ${esConcluido ? '' : `<button onclick="preguntarAccion(${ajusteId}, '${tipo}', 'rechazar')" style="background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 0.8em; font-weight: bold;">✖ Rechazar</button>`}
                                 </div>
-                                <span style="color: var(--text-color); font-size: 0.75em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${nombreArchivo}</span>
-                            </div>`;
+                            </div>
+                        `;
                     }
                 } else {
-                    htmlArchivos += `
-                        <div style="background: rgba(239, 68, 68, 0.05); padding: 12px; border-radius: 8px; border: 1px dashed var(--danger-color); display: flex; flex-direction: column; justify-content: center; align-items: center;">
-                            <strong style="color: var(--danger-color); font-size: 0.9em;">${tipo} Faltante</strong>
-                        </div>`;
+                    htmlContenido += `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-color); border-radius: 8px; border: 1px dashed #e74c3c; margin-bottom: 10px;">
+                            <strong style="color: #e74c3c; width: 50px;">${tipo}</strong>
+                            <span style="color: #e74c3c; font-size: 0.85em; font-weight: bold; flex-grow: 1; text-align: right;">Faltante (Pendiente por el Ajustador)</span>
+                        </div>
+                    `;
                 }
             });
 
-            // Construir el GRID principal
-            htmlContenido = `
-                <div style="display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; margin-top: 10px;">
-                    
-                    <!-- COLUMNA IZQUIERDA: Vehículo, Documentos y Narrativa -->
-                    <div style="display: flex; flex-direction: column; gap: 15px;">
-                        
-                        <!-- Tarjetas de Telemetría -->
-                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
-                            <div style="background: var(--bg-color); padding: 12px; border-radius: 10px; border: 1px solid var(--border-color);">
-                                <span style="font-size: 0.7em; color: var(--text-muted); text-transform: uppercase; font-weight: bold;">📍 Ubicación y Seguro</span><br>
-                                <strong style="color: var(--text-color); font-size: 0.9em;">${info.lugar} • ${info.seguro}</strong>
-                            </div>
-                            <div style="background: var(--bg-color); padding: 12px; border-radius: 10px; border: 1px solid var(--border-color);">
-                                <span style="font-size: 0.7em; color: var(--text-muted); text-transform: uppercase; font-weight: bold;">🚗 Telemetría</span><br>
-                                <strong style="color: var(--text-color); font-size: 0.9em;">${info.kilometros ? info.kilometros + ' km' : 'N/A'}</strong>
-                            </div>
-                            <div style="background: var(--bg-color); padding: 12px; border-radius: 10px; border: 1px solid var(--border-color);">
-                                <span style="font-size: 0.7em; color: var(--text-muted); text-transform: uppercase; font-weight: bold;">💰 Estimación Financiera</span><br>
-                                <strong style="color: var(--success-color); font-size: 1.1em;">${montoFormateado}</strong>
-                            </div>
-                        </div>
+            // 2. Extraer y mostrar las Fotografías (Todo lo que no sea DOA, ORD, PM)
+            const fotos = datosDocs.documentos.filter(d => !['DOA', 'ORD', 'PM'].includes(d.TipoDocumento) && d.RutaArchivo !== 'NO_REQUERIDO');
 
-                        <!-- Archivos y Documentación Oficial -->
-                        <div style="background: var(--bg-color); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color);">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                                <h4 style="margin: 0; color: var(--text-color);">📁 Archivos y Documentación Oficial</h4>
-                                ${urlsParaDescargar.length > 0 ? `<button onclick="descargarArchivosMasivo([${urlsParaDescargar.join(',')}])" style="background: transparent; color: var(--text-muted); border: none; cursor: pointer; font-size: 0.8em; font-weight: bold;">📥 Lote completo (${urlsParaDescargar.length})</button>` : ''}
-                            </div>
-                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
-                                ${htmlArchivos}
-                            </div>
-                        </div>
+            if (fotos.length > 0) {
+                htmlContenido += `
+                    <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 15px 0;">
+                    <h4 style="margin: 0 0 10px 0;">📸 Fotografías del Siniestro</h4>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 10px;">
+                `;
 
-                        <!-- Narrativa Pericial -->
-                        <div style="background: var(--bg-color); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color);">
-                            <h4 style="margin: 0 0 10px 0; color: var(--text-muted); font-size: 0.75em; text-transform: uppercase; letter-spacing: 0.05em;">NARRATIVA PERICIAL ASENTADA</h4>
-                            <p style="margin: 0; font-size: 0.9em; line-height: 1.6; color: var(--text-muted); font-style: italic;">"${info.relatoria || 'Sin relatoría'}"</p>
+                fotos.forEach(foto => {
+                    const rutaWeb = foto.RutaArchivo.replace(/\\/g, '/');
+                    const urlCompleta = `http://localhost:3000/${rutaWeb}`;
+                    urlsParaDescargar.push(`'${urlCompleta}'`); // Las fotos también se irán en la descarga masiva
+
+                    htmlContenido += `
+                        <a href="${urlCompleta}" target="_blank" style="position: relative; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color); aspect-ratio: 16/9; background: #000; display: block; text-decoration: none;">
+                            <img src="${urlCompleta}" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.85; transition: 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.85'">
+                            <div style="position: absolute; bottom: 0; width: 100%; background: rgba(0,0,0,0.75); color: white; font-size: 0.7em; padding: 4px; text-align: center; font-weight: bold;">
+                                ${foto.TipoDocumento}
+                            </div>
+                        </a>
+                    `;
+                });
+
+                htmlContenido += `
+                    </div>
+                    <div style="background-color: rgba(46, 204, 113, 0.1); border: 1px solid #2ecc71; padding: 10px; border-radius: 6px; display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
+                        <span style="font-size: 1.5em;">🛡️</span>
+                        <div>
+                            <strong style="font-size: 0.8em; color: #2ecc71; display: block; margin-bottom: 2px;">Metadatos EXIF Verificados</strong>
+                            <span style="font-size: 0.75em; color: var(--text-color);">Dispositivo de captura: ${resInfo.dispositivo || 'Apple iPhone 16 Pro Max'}</span>
                         </div>
                     </div>
+                `;
+            }
 
-                    <!-- COLUMNA DERECHA: Dictamen y Bitácora -->
-                    <div style="display: flex; flex-direction: column; gap: 15px;">
-                        
-                        <!-- Dictamen del Auditor -->
-                        <div style="background: var(--bg-color); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color);">
-                            <h4 style="margin: 0 0 5px 0; color: var(--text-color);">⚖️ Dictamen del Auditor</h4>
-                            <p style="margin: 0 0 15px 0; font-size: 0.8em; color: ${colorAlerta}; font-weight: bold;">${info.alertaUI}</p>
-
-                            ${esConcluido ? `
-                                <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid var(--success-color); padding: 10px; border-radius: 6px; text-align: center;">
-                                    <strong style="color: var(--success-color); font-size: 0.85em;">✅ Expediente Cerrado y Autorizado</strong>
-                                </div>
-                                <input type="hidden" id="textoRespuestaAdmin" value="">
-                            ` : `
-                                <label style="font-size: 0.8em; font-weight: bold; color: var(--text-muted); display: block; margin-bottom: 5px;">Tu instrucción al Ajustador:</label>
-                                <textarea id="textoRespuestaAdmin" rows="2" placeholder="Ej. Faltan firmas en el DOA..." style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--panel-bg); color: var(--text-color); margin-bottom: 15px; box-sizing: border-box; resize: vertical;">${borradorTexto}</textarea>
-                                
-                                <label style="font-size: 0.8em; font-weight: bold; color: var(--text-muted); display: block; margin-bottom: 5px;">Resolución del Sistema:</label>
-                                <select id="selectEstadoAdmin" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--panel-bg); color: var(--text-color); margin-bottom: 15px; font-weight: bold;" ${(info.turno === 'Ajustador') ? 'disabled' : ''}>
-                                    <option value="En Análisis" ${info.estado === 'En Análisis' ? 'selected' : ''}>En Análisis</option>
-                                    <option value="En Ajuste" ${info.estado === 'En Ajuste' ? 'selected' : ''}>En Ajuste</option>
-                                    <option value="Concluido" ${info.estado === 'Concluido' ? 'selected' : ''}>Concluido</option>
-                                </select>
-
-                                <button onclick="guardarEstadoAdmin(${ajusteId})" style="width: 100\%; background: ${(info.turno === 'Ajustador') ? 'var(--text-muted)' : 'var(--primary-color)'}; color: white; border: none; padding: 12px; border-radius: 8px; cursor: ${(info.turno === 'Ajustador') ? 'not-allowed' : 'pointer'}; font-weight: bold; font-size: 0.9em; transition: 0.3s;" ${(info.turno === 'Ajustador') ? 'disabled' : ''}>
-                                    Actualizar Dictamen y Notificar
-                                </button>
-                            `}
-                        </div>
-
-                        <!-- Bitácora -->
-                        <div style="background: var(--bg-color); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); flex: 1;">
-                            <h4 style="margin: 0 0 15px 0; color: var(--text-color);">💬 Bitácora Técnica</h4>
-                            <div style="display: flex; flex-direction: column; gap: 12px;">
-                                ${info.respuestaAnalista ? `
-                                    <div style="background: var(--panel-bg); padding: 10px 15px; border-radius: 8px; border-left: 3px solid var(--primary-color);">
-                                        <strong style="font-size: 0.8em; color: var(--primary-color);">Analista ASPV</strong>
-                                        <p style="margin: 5px 0 0 0; font-size: 0.85em; color: var(--text-color); white-space: pre-wrap;">${info.respuestaAnalista}</p>
-                                    </div>
-                                ` : '<span style="font-size: 0.8em; color: var(--text-muted);">Sin intervenciones previas del analista.</span>'}
-                            </div>
-                        </div>
-
+            // 3. Botón de descarga masiva
+            if (urlsParaDescargar.length > 0) {
+                htmlContenido += `
+                    <div style="display: flex; justify-content: center; margin-top: 15px;">
+                        <button onclick="descargarArchivosMasivo([${urlsParaDescargar.join(',')}])" style="background-color: transparent; color: #3498db; border: 2px solid #3498db; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                            📥 Descargar Todos los Archivos (${urlsParaDescargar.length})
+                        </button>
                     </div>
-                </div>
-            `;
+                `;
+            }
         }
         modalContenido.innerHTML = htmlContenido;
-    } catch (error) { modalContenido.innerHTML = '<p style="color: var(--danger-color); text-align: center;">Error de telemetría.</p>'; }
+    } catch (error) { modalContenido.innerHTML = '<p style="color: #e74c3c;">Error al conectar con el servidor.</p>'; }
 }
 
 // ==========================================

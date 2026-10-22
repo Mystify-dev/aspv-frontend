@@ -196,7 +196,7 @@
                         </div>
                     </div>
 
-                    <!-- Fila 3: Póliza, Aseguradora, Kilometraje -->
+                    <!-- Fila 3: Datos de la Póliza (2 columnas) -->
                     <div style="display: flex; gap: 10px;">
                         <div style="flex: 1;">
                             <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold;">Póliza</label>
@@ -215,13 +215,9 @@
                                 <option value="Spt seguros">Spt seguros</option>
                             </select>
                         </div>
-                        <div style="flex: 1;">
-                            <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold;">Kilometraje (km)</label>
-                            <input type="number" id="kmSiniestro" placeholder="Ej. 120" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); margin-top: 5px; box-sizing: border-box;">
-                        </div>
                     </div>
 
-                    <!-- Fila 4: Tipo de Cobertura y Tipo de Siniestro -->
+                    <!-- Fila 4: Datos Operativos y Logística (3 columnas) -->
                     <div style="display: flex; gap: 10px;">
                         <div style="flex: 1;">
                             <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold;">Tipo de Cobertura</label>
@@ -238,6 +234,10 @@
                                 <option value="No Localizado">No Localizado</option>
                                 <option value="Cancelado">Cancelado</option>
                             </select>
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold;">Kilometraje (km)</label>
+                            <input type="number" id="kmSiniestro" placeholder="Ej. 120" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); margin-top: 5px; box-sizing: border-box;">
                         </div>
                     </div>
 
@@ -288,6 +288,15 @@
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <label style="font-size: 0.75em; color: var(--text-muted);"><input type="checkbox" id="naPM_main" onchange="document.getElementById('archivoPM').disabled = this.checked"> N/A</label>
                             <input type="file" id="archivoPM" accept=".pdf, image/*" style="width: 170px; font-size: 0.8em; color: var(--text-color);">
+                        </div>
+                    </div>
+
+                    <!-- NUEVO: Selector múltiple de Fotografías -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+                        <label style="font-weight: bold; font-size: 0.9em;">📸 Fotografías <span style="color: var(--text-muted); font-weight: normal; font-size: 0.8em;"><br>Frente, laterales y placas</span></label>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <!-- El atributo 'multiple' es la magia que permite elegir varias fotos a la vez -->
+                            <input type="file" id="archivosFotos" accept="image/*" multiple style="width: 170px; font-size: 0.8em; color: var(--text-color);">
                         </div>
                     </div>
 

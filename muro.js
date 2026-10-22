@@ -138,25 +138,50 @@ async function cargarArchivosPost(folio) {
         if(res.ok) {
             const data = await res.json();
             let html = '';
+            let htmlDocumentos = '';
+            let htmlFotos = '';
             let cantArchivos = 0;
 
-            // 1. Dibujamos los archivos individuales
-            data.documentos.forEach(doc => {
-                if(doc.RutaArchivo !== 'NO_REQUERIDO') {
-                    cantArchivos++;
-                    const url = `http://localhost:3000/${doc.RutaArchivo.replace(/\\/g, '/')}`;
-                    html += `
+            const docsFiltro = data.documentos.filter(d => d.RutaArchivo !== 'NO_REQUERIDO');
+
+            docsFiltro.forEach(doc => {
+                cantArchivos++;
+                const url = `http://localhost:3000/${doc.RutaArchivo.replace(/\\/g, '/')}`;
+
+                // 1. Si es PDF oficial (DOA, ORD, PM), lo dejamos como botón
+                if (['DOA', 'ORD', 'PM'].includes(doc.TipoDocumento)) {
+                    htmlDocumentos += `
                         <a href="${url}" target="_blank" download style="background: var(--bg-color); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 8px; text-decoration: none; color: var(--text-color); font-size: 0.85em; display: flex; align-items: center; gap: 5px; transition: 0.2s;">
                             📄 ${doc.TipoDocumento} <span style="color: var(--primary-color);">📥</span>
                         </a>
                     `;
                 }
+                // 2. Si es cualquier otra cosa (Fotos), lo pintamos como imagen
+                else {
+                    htmlFotos += `
+                        <a href="${url}" target="_blank" style="position: relative; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color); aspect-ratio: 16/9; background: #000; display: block; text-decoration: none;">
+                            <img src="${url}" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.85; transition: 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.85'">
+                            <div style="position: absolute; bottom: 0; width: 100%; background: rgba(0,0,0,0.75); color: white; font-size: 0.7em; padding: 4px; text-align: center; font-weight: bold;">
+                                ${doc.TipoDocumento}
+                            </div>
+                        </a>
+                    `;
+                }
             });
 
-            // 2. Si hay archivos, agregamos el Botón Masivo elegante para el muro
+            // Ensamblamos todo en el contenedor
+            if (htmlDocumentos !== '') {
+                html += `<div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; width: 100%;">${htmlDocumentos}</div>`;
+            }
+            if (htmlFotos !== '') {
+                // Usamos un grid responsive para que las fotos se ajusten al ancho del post
+                html += `<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; width: 100%; margin-bottom: 10px;">${htmlFotos}</div>`;
+            }
+
+            // 3. Botón Masivo al final
             if (cantArchivos > 0) {
                 html += `
-                    <div style="width: 100%; display: flex; justify-content: flex-end; margin-top: 5px;">
+                    <div style="width: 100%; display: flex; justify-content: flex-end; margin-top: 5px; border-top: 1px dashed var(--border-color); padding-top: 10px;">
                         <button type="button" onclick="descargarArchivosMasivo(${folio})" style="background: transparent; color: #3498db; border: none; cursor: pointer; font-weight: bold; font-size: 0.85em; display: flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 5px; transition: background 0.2s;">
                             🗃️ Descargar los ${cantArchivos} archivos
                         </button>

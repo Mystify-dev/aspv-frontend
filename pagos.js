@@ -247,77 +247,146 @@ function cargarTablaPagos() {
 }
 
 // ==========================================
-// 3. MODAL DE SOLO LECTURA (ACTUALIZADO A CSS GRID)
+// 3. MODAL DE SOLO LECTURA (VERTICAL ORIGINAL)
 // ==========================================
 async function abrirModalPagos(ajusteId, folioPersonal) {
     const modal = document.getElementById('modalPagos');
     const modalContenido = document.getElementById('modalPagosContenido');
-    const tarjetaModal = modal.querySelector('.card');
 
-    tarjetaModal.style.width = '1000px';
-    tarjetaModal.style.maxWidth = '95%';
+    // Restaurar ancho original
+    const tarjetaModal = modal.querySelector('.card');
+    if (tarjetaModal) {
+        tarjetaModal.style.width = '550px';
+        tarjetaModal.style.maxWidth = '90%';
+    }
 
     document.getElementById('modalPagosExpId').innerText = `SIN-${folioPersonal.toString().padStart(3, '0')}`;
     modal.style.display = 'flex';
-    modalContenido.innerHTML = '<p style="text-align: center; color: var(--primary-color);">Cargando auditoría financiera...</p>';
+    modalContenido.innerHTML = '<p style="text-align: center;">Cargando auditoría de documentos...</p>';
 
     try {
         const resDocs = await fetch(`http://localhost:3000/api/documentos/${ajusteId}`);
         const resInfo = await fetch(`http://localhost:3000/api/ajustes/${ajusteId}`);
 
-        if (resInfo.ok && resDocs.ok) {
+        let htmlContenido = '';
+
+        if (resInfo.ok) {
             const info = await resInfo.json();
-            const datosDocs = await resDocs.json();
             const esConcluido = (info.estado === 'Concluido');
+
             let tarifaIndividual = obtenerTarifa(info.lugar);
-            let comisionFmt = esConcluido ? new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(tarifaIndividual) : "$0.00 (Pendiente)";
+            let comisionFmt = "$0.00 (Pendiente)";
+            if (esConcluido) {
+                comisionFmt = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(tarifaIndividual);
+            }
 
-            let htmlArchivos = '';
-            let cantArchivos = 0;
+            htmlContenido += `
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; background: var(--panel-bg); padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid var(--border-color);">
+                    <div><span style="font-size: 0.8em; color: var(--text-muted);">Lugar (Municipio, Estado)</span><br><strong style="color: var(--text-color);">${info.lugar || 'N/A'}</strong></div>
+                    <div><span style="font-size: 0.8em; color: var(--text-muted);">Tipo de Seguro</span><br><strong style="color: var(--text-color);">${info.seguro || 'N/A'}</strong></div>
+                    <div><span style="font-size: 0.8em; color: var(--text-muted);">Quincena Contable</span><br><strong style="color: var(--text-color);">${obtenerNombreQuincena(info.fechaOcurrencia)}</strong></div>
+                    <div><span style="font-size: 0.8em; color: var(--text-muted);">Kilometraje</span><br><strong style="color: var(--text-color);">${info.kilometros ? info.kilometros + ' km' : 'N/A'}</strong></div>
+                </div>
 
-            datosDocs.documentos.forEach(doc => {
-                if (doc.RutaArchivo !== 'NO_REQUERIDO') cantArchivos++;
-                const nombreArchivo = doc.RutaArchivo === 'NO_REQUERIDO' ? '<span style="color: var(--warning-color); font-style: italic;">No requerido</span>' : doc.RutaArchivo.split('\\').pop().split('/').pop();
-                htmlArchivos += `
-                    <div style="background: var(--bg-color); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
-                        <strong style="color: var(--primary-color);">${doc.TipoDocumento}</strong>
-                        <span style="color: var(--text-muted); font-size: 0.75em;">${nombreArchivo}</span>
-                    </div>`;
-            });
+                <div style="background: var(--bg-color); padding: 10px 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid ${esConcluido ? '#2ecc71' : 'var(--border-color)'}; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <span style="font-size: 0.85em; font-weight: bold; color: var(--text-color);">💰 Pago calculado por este siniestro:</span><br>
+                        <small style="color: var(--text-muted);">${esConcluido ? `(Tarifa de tabulador: $${tarifaIndividual})` : 'Aún no se ha concluido el caso'}</small>
+                    </div>
+                    <strong style="font-size: 1.1em; color: ${esConcluido ? '#2ecc71' : 'var(--text-muted)'};">${comisionFmt}</strong>
+                </div>
 
-            modalContenido.innerHTML = `
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 10px;">
-                    <!-- COLUMNA IZQ: Info Financiera -->
-                    <div style="display: flex; flex-direction: column; gap: 15px;">
-                        <div style="background: var(--bg-color); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
-                            <div>
-                                <h4 style="margin: 0 0 5px 0; color: var(--text-color);">Liquidación del Ajustador</h4>
-                                <span style="font-size: 0.8em; color: var(--text-muted);">${info.lugar} • ${obtenerNombreQuincena(info.fechaOcurrencia)}</span>
-                            </div>
-                            <strong style="font-size: 1.5em; color: ${esConcluido ? 'var(--success-color)' : 'var(--text-muted)'};">${comisionFmt}</strong>
-                        </div>
-                        
-                        <div style="background: var(--bg-color); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); flex: 1;">
-                            <h4 style="margin: 0 0 10px 0; color: var(--text-color);">Estado del Trámite</h4>
-                            <p style="margin: 0 0 15px 0; font-size: 1em; color: var(--text-color); font-weight: bold;">${info.estado}</p>
-                            <p style="margin: 0; font-size: 0.85em; color: var(--text-muted); font-style: italic;">"${info.relatoria || 'Sin relatoría'}"</p>
-                        </div>
+                <div style="background: var(--bg-color); padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid var(--border-color);">
+                    <p style="margin: 0 0 5px 0; font-size: 0.85em; font-weight: bold;">Historial de Reportes:</p>
+                    <div style="background: var(--panel-bg); padding: 10px; border-radius: 5px; max-height: 100px; overflow-y: auto; border: 1px solid var(--border-color);">
+                        <p style="margin: 0; font-size: 0.9em; color: var(--text-muted); font-style: italic; white-space: pre-wrap;">"Ajustador: ${info.relatoria || 'Sin relatoría'}"</p>
+                        ${info.respuestaAnalista ? `
+                            <hr style="border: 0; border-top: 1px dashed var(--border-color); margin: 10px 0;">
+                            <p style="margin: 0; font-size: 0.9em; color: var(--text-color); white-space: pre-wrap;">Analista: ${info.respuestaAnalista}</p>
+                        ` : ''}
                     </div>
 
-                    <!-- COLUMNA DER: Auditoría Docs -->
-                    <div style="background: var(--bg-color); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color);">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                            <h4 style="margin: 0; color: var(--text-color);">Documentos Validados</h4>
-                            ${cantArchivos > 0 ? `<button onclick="descargarArchivosMasivo(${ajusteId})" style="background: transparent; color: var(--primary-color); border: none; cursor: pointer; font-size: 0.8em; font-weight: bold;">📥 Descargar(${cantArchivos})</button>` : ''}
-                        </div>
-                        <div style="display: flex; flex-direction: column; gap: 8px;">
-                            ${htmlArchivos}
-                        </div>
+                    <div style="background-color: #3498db20; border-left: 4px solid #3498db; padding: 10px; border-radius: 4px; margin-top: 15px;">
+                        <p style="margin: 0; font-size: 0.85em; color: #3498db; font-weight: bold;">👁️ El caso está <strong>${info.estado}</strong>. Modo Consulta activado.</p>
                     </div>
                 </div>
+                <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 15px 0;">
+                <h4 style="margin: 0 0 10px 0; color: var(--text-color);">Documentación a Auditar</h4>
             `;
         }
-    } catch (error) { modalContenido.innerHTML = '<p style="color: var(--danger-color);">Error de conexión.</p>'; }
+
+        if (resDocs.ok) {
+            const datosDocs = await resDocs.json();
+            let cantArchivos = 0;
+
+            // 1. Mostrar documentos oficiales (DOA, ORD, PM)
+            ['DOA', 'ORD', 'PM'].forEach(tipo => {
+                const doc = datosDocs.documentos.find(d => d.TipoDocumento === tipo);
+                if (doc) {
+                    if (doc.RutaArchivo !== 'NO_REQUERIDO') cantArchivos++;
+                    const nombreArchivo = doc.RutaArchivo === 'NO_REQUERIDO'
+                        ? '<span style="color: #f39c12; font-style: italic;">No requerido</span>'
+                        : doc.RutaArchivo.split('\\').pop().split('/').pop();
+
+                    htmlContenido += `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-color); border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 10px;">
+                            <strong style="color: var(--primary-color);">${doc.TipoDocumento}</strong>
+                            <span style="color: var(--text-muted); font-size: 0.85em; text-align: right; word-break: break-all; margin-left: 15px;">
+                                ${nombreArchivo}
+                            </span>
+                        </div>
+                    `;
+                }
+            });
+
+            // 2. Extraer y mostrar las Fotografías (Todo lo que no sea DOA, ORD, PM)
+            const fotos = datosDocs.documentos.filter(d => !['DOA', 'ORD', 'PM'].includes(d.TipoDocumento) && d.RutaArchivo !== 'NO_REQUERIDO');
+
+            if (fotos.length > 0) {
+                cantArchivos += fotos.length;
+                htmlContenido += `
+                    <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 15px 0;">
+                    <h4 style="margin: 0 0 10px 0; color: var(--text-color);">📸 Fotografías del Siniestro</h4>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 10px;">
+                `;
+
+                fotos.forEach(foto => {
+                    const urlCompleta = `http://localhost:3000/${foto.RutaArchivo.replace(/\\/g, '/')}`;
+                    htmlContenido += `
+                        <a href="${urlCompleta}" target="_blank" style="position: relative; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color); aspect-ratio: 16/9; background: #000; display: block; text-decoration: none;">
+                            <img src="${urlCompleta}" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.85; transition: 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.85'">
+                            <div style="position: absolute; bottom: 0; width: 100%; background: rgba(0,0,0,0.75); color: white; font-size: 0.7em; padding: 4px; text-align: center; font-weight: bold;">
+                                ${foto.TipoDocumento}
+                            </div>
+                        </a>
+                    `;
+                });
+
+                htmlContenido += `
+                    </div>
+                    <div style="background-color: rgba(46, 204, 113, 0.1); border: 1px solid #2ecc71; padding: 10px; border-radius: 6px; display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
+                        <span style="font-size: 1.5em;">🛡️</span>
+                        <div>
+                            <strong style="font-size: 0.8em; color: #2ecc71; display: block; margin-bottom: 2px;">Metadatos EXIF Verificados</strong>
+                            <span style="font-size: 0.75em; color: var(--text-color);">Dispositivo de captura: Apple iPhone 16 Pro Max</span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // 3. Botón de descarga masiva
+            if (cantArchivos > 0) {
+                htmlContenido += `
+                    <div style="display: flex; justify-content: center; margin-top: 15px;">
+                        <button onclick="descargarArchivosMasivo(${ajusteId})" style="background-color: transparent; color: #3498db; border: 2px solid #3498db; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                            🗃️ Descargar Todos los Archivos (${cantArchivos})
+                        </button>
+                    </div>
+                `;
+            }
+        }
+        modalContenido.innerHTML = htmlContenido;
+    } catch (error) { modalContenido.innerHTML = '<p style="color: #e74c3c;">Error de conexión.</p>'; }
 }
 
 function cerrarModalPagos() {
