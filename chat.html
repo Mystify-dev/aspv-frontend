@@ -15,28 +15,34 @@
 <div class="chat-container">
 
     <!-- 1. Lista de Contactos (Izquierda) -->
-    <div class="chat-sidebar">
+    <div class="chat-sidebar" style="display: flex; flex-direction: column; height: 100%;">
         <div class="chat-header">
             <button id="btnVolverInicio" style="width: 100%; margin-bottom: 15px; background: var(--primary-color); color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: bold; transition: 0.2s;">
                 🏠 Volver al inicio
             </button>
 
             <h2 style="margin: 0; font-size: 1.2em;">Mensajes Operativos</h2>
-            <input type="text" placeholder="🔍 Buscar por nombre, correo o ID..." style="width: 100%; padding: 10px; margin-top: 15px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); box-sizing: border-box;">
+            <input type="text" id="inputBuscarContacto" placeholder="🔍 Buscar por nombre, correo o ID..." style="width: 100%; padding: 10px; margin-top: 15px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); box-sizing: border-box;">
         </div>
-        <div style="overflow-y: auto; flex: 1;">
 
-            <div id="itemChatKevin" style="padding: 15px; border-bottom: 1px solid var(--border-color); display: flex; gap: 15px; cursor: pointer; transition: background 0.2s;">
-                <div style="width: 45px; height: 45px; background: #3498db; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">KM</div>
-                <div style="flex: 1;">
-                    <div style="display: flex; justify-content: space-between;">
-                        <strong style="color: var(--text-color);">Kevin Morales</strong>
-                        <span style="font-size: 0.75em; color: var(--text-muted);">15:42</span>
-                    </div>
-                    <p style="margin: 5px 0 0 0; font-size: 0.85em; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 180px;">Ya subí las 4 fotos del Versa...</p>
-                </div>
+        <div id="contenedorDeContactos" style="overflow-y: auto; flex: 1;">
+            <!-- El chat.js dibujará aquí a todos los usuarios mágicamente -->
+        </div>
+
+        <!-- NUEVO: Tu tarjeta de sesión actual anclada al fondo -->
+        <div style="padding: 15px; border-top: 1px solid var(--border-color); background: var(--panel-bg); display: flex; align-items: center; gap: 12px; margin-top: auto;">
+
+            <!-- Contenedor dinámico para tu foto o inicial -->
+            <div style="width: 40px; height: 40px; border-radius: 50%; overflow: hidden; background: #2ecc71; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; flex-shrink: 0;">
+                <img id="miFotoImg" src="" style="width: 100%; height: 100%; object-fit: cover; display: none;">
+                <span id="miInicialSesion">?</span>
             </div>
 
+            <div style="flex: 1; overflow: hidden;">
+                <strong id="miNombreSesion" style="color: var(--text-color); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Cargando...</strong>
+                <span id="miRolSesion" style="font-size: 0.75em; color: var(--text-muted);">Rol</span>
+            </div>
+            <div style="width: 10px; height: 10px; border-radius: 50%; background: #2ecc71; box-shadow: 0 0 5px #2ecc71;" title="En línea"></div>
         </div>
     </div>
 
@@ -56,109 +62,113 @@
                     <button id="btnCerrarChat" style="background: transparent; border: none; font-size: 1.2em; color: var(--text-color); cursor: pointer; padding: 5px; margin-right: 5px;" title="Cerrar chat">⬅️</button>
 
                     <div id="btnPerfilContacto" style="display: flex; align-items: center; gap: 15px; cursor: pointer; padding: 5px; border-radius: 8px; transition: background 0.2s;" title="Ver detalles del contacto">
-                        <div style="width: 40px; height: 40px; background: #3498db; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">KM</div>
+
+                        <!-- NUEVO: Contenedor de foto para el encabezado central -->
+                        <div style="width: 40px; height: 40px; background: var(--primary-color); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; overflow: hidden; flex-shrink: 0;">
+                            <img id="cabeceraFotoImg" src="" style="width: 100%; height: 100%; object-fit: cover; display: none;">
+                            <span id="cabeceraInicialTexto">👤</span>
+                        </div>
+
                         <div>
-                            <h3 style="margin: 0; font-size: 1.1em; color: var(--text-color);">Kevin Morales</h3>
-                            <span style="font-size: 0.8em; color: #2ecc71;">En línea</span>
+                            <h3 id="nombreUsuarioActivo" style="margin: 0; font-size: 1.1em; color: var(--text-color);">Selecciona un chat</h3>
+                            <span id="estadoContactoActivo" style="font-size: 0.8em; color: #2ecc71;">En línea</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Historial de mensajes vacío y con ID -->
-            <div class="chat-messages" id="contenedorMensajes">
-                <!-- Aquí aparecerán los mensajes mágicamente -->
-            </div>
+            <!-- Historial de mensajes -->
+            <div class="chat-messages" id="contenedorMensajes"></div>
 
             <!-- Zona de escritura y Menú de Adjuntos -->
-            <div class="chat-input-area" style="position: relative;">
+            <div class="chat-input-area" style="position: relative; display: flex; flex-direction: column; gap: 10px;">
 
-                <!-- MENÚ FLOTANTE ESTILO WHATSAPP (Oculto por defecto) -->
-                <div id="menuAdjuntos" style="display: none; position: absolute; bottom: 65px; left: 15px; background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); flex-direction: column; padding: 10px; gap: 5px; z-index: 100; min-width: 200px;">
-                    <div id="optDocumento" style="display: flex; align-items: center; gap: 15px; padding: 10px 15px; cursor: pointer; border-radius: 8px; transition: background 0.2s;" onmouseover="this.style.background='var(--bg-color)'" onmouseout="this.style.background='transparent'">
-                        <span style="font-size: 1.2em; color: #7f66ff;">📄</span>
-                        <span style="color: var(--text-color); font-weight: 500;">Documento</span>
+                <!-- PREVISUALIZACIÓN DE ARCHIVO (Oculta por defecto) -->
+                <div id="previewAdjunto" style="display: none; background: var(--panel-bg); border: 1px solid var(--primary-color); padding: 10px 15px; border-radius: 8px; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 10px; overflow: hidden;">
+                        <span id="previewIcono" style="font-size: 1.5em;">📄</span>
+                        <span id="previewNombre" style="font-size: 0.9em; color: var(--text-color); font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">archivo.pdf</span>
                     </div>
-                    <div id="optFotos" style="display: flex; align-items: center; gap: 15px; padding: 10px 15px; cursor: pointer; border-radius: 8px; transition: background 0.2s;" onmouseover="this.style.background='var(--bg-color)'" onmouseout="this.style.background='transparent'">
-                        <span style="font-size: 1.2em; color: #007bff;">🖼️</span>
-                        <span style="color: var(--text-color); font-weight: 500;">Fotos y videos</span>
-                    </div>
-                    <div id="optCamara" style="display: flex; align-items: center; gap: 15px; padding: 10px 15px; cursor: pointer; border-radius: 8px; transition: background 0.2s;" onmouseover="this.style.background='var(--bg-color)'" onmouseout="this.style.background='transparent'">
-                        <span style="font-size: 1.2em; color: #ff2e74;">📷</span>
-                        <span style="color: var(--text-color); font-weight: 500;">Cámara</span>
-                    </div>
+                    <button id="btnCancelarAdjunto" style="background: transparent; border: none; color: #e74c3c; cursor: pointer; font-size: 1.2em; font-weight: bold;" title="Quitar archivo">✖</button>
                 </div>
 
-                <!-- INPUTS OCULTOS -->
-                <input type="file" id="inputDocumento" multiple accept=".pdf, .doc, .docx, .xls, .xlsx" style="display: none;">
-                <input type="file" id="inputFotos" multiple accept="image/*, video/*" style="display: none;">
-                <input type="file" id="inputCamara" accept="image/*, video/*" capture="environment" style="display: none;">
+                <div style="display: flex; align-items: center; width: 100%; position: relative;">
+                    <!-- MENÚ FLOTANTE ESTILO WHATSAPP -->
+                    <div id="menuAdjuntos" style="display: none; position: absolute; bottom: 50px; left: 0; background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); flex-direction: column; padding: 10px; gap: 5px; z-index: 100; min-width: 200px;">
+                        <div id="optDocumento" style="display: flex; align-items: center; gap: 15px; padding: 10px 15px; cursor: pointer; border-radius: 8px; transition: background 0.2s;" onmouseover="this.style.background='var(--bg-color)'" onmouseout="this.style.background='transparent'">
+                            <span style="font-size: 1.2em; color: #7f66ff;">📄</span><span style="color: var(--text-color); font-weight: 500;">Documento</span>
+                        </div>
+                        <div id="optFotos" style="display: flex; align-items: center; gap: 15px; padding: 10px 15px; cursor: pointer; border-radius: 8px; transition: background 0.2s;" onmouseover="this.style.background='var(--bg-color)'" onmouseout="this.style.background='transparent'">
+                            <span style="font-size: 1.2em; color: #007bff;">🖼️</span><span style="color: var(--text-color); font-weight: 500;">Fotos y videos</span>
+                        </div>
+                        <div id="optCamara" style="display: flex; align-items: center; gap: 15px; padding: 10px 15px; cursor: pointer; border-radius: 8px; transition: background 0.2s;" onmouseover="this.style.background='var(--bg-color)'" onmouseout="this.style.background='transparent'">
+                            <span style="font-size: 1.2em; color: #ff2e74;">📷</span><span style="color: var(--text-color); font-weight: 500;">Cámara</span>
+                        </div>
+                    </div>
 
-                <button id="btnClipAdjuntar" style="background: transparent; border: none; font-size: 1.5em; cursor: pointer; color: var(--text-muted);" title="Adjuntar archivo">📎</button>
+                    <!-- INPUTS OCULTOS -->
+                    <input type="file" id="inputDocumento" multiple accept=".pdf, .doc, .docx, .xls, .xlsx" style="display: none;">
+                    <input type="file" id="inputFotos" multiple accept="image/*, video/*" style="display: none;">
+                    <input type="file" id="inputCamara" accept="image/*, video/*" capture="environment" style="display: none;">
 
-                <input type="text" id="inputNuevoMensaje" placeholder="Escribe un mensaje..." style="flex: 1; padding: 12px 20px; border-radius: 25px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color);">
-                <button id="btnEnviarMensaje" style="background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 25px; cursor: pointer; font-weight: bold;">Enviar ➔</button>
+                    <button id="btnClipAdjuntar" style="background: transparent; border: none; font-size: 1.5em; cursor: pointer; color: var(--text-muted); margin-right: 10px;" title="Adjuntar archivo">📎</button>
+
+                    <input type="text" id="inputNuevoMensaje" placeholder="Escribe un mensaje..." style="flex: 1; padding: 12px 20px; border-radius: 25px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color);">
+                    <button id="btnEnviarMensaje" style="background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 25px; cursor: pointer; font-weight: bold; margin-left: 10px;">Enviar ➔</button>
+                </div>
             </div>
         </div>
 
     </div>
 
     <!-- 3. Detalles de Ajustador / Archivos (Derecha) -->
-    <div class="chat-details" id="columnaDetalles">
+    <div class="chat-details" id="columnaDetalles" style="display: flex; flex-direction: column;">
         <div style="text-align: right; margin-bottom: -10px; z-index: 10;">
             <button id="btnCerrarDetalles" style="background: transparent; border: none; color: var(--text-color); cursor: pointer; font-size: 1.2em;">✖</button>
         </div>
 
         <div style="text-align: center; margin-bottom: 20px;">
-            <div style="width: 80px; height: 80px; background: #3498db; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 2em; font-weight: bold; margin: 0 auto 10px auto;">KM</div>
-            <h3 style="margin: 0; color: var(--text-color);">Kevin Morales</h3>
-            <p style="margin: 5px 0 0 0; font-size: 0.9em; color: var(--text-muted);">Ajustador Senior de Campo</p>
+            <!-- Contenedor dinámico para Foto o Inicial -->
+            <div id="detallesFotoContenedor" style="width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 10px auto; overflow: hidden; background: #3498db; display: flex; align-items: center; justify-content: center; color: white; font-size: 2.5em; font-weight: bold;">
+                <img id="detallesFotoImg" src="" style="width: 100%; height: 100%; object-fit: cover; display: none;">
+                <span id="detallesInicialTexto">👤</span>
+            </div>
+
+            <h3 id="detallesNombre" style="margin: 0; color: var(--text-color);">Detalles del chat</h3>
+
+            <!-- NUEVO: Correo Institucional -->
+            <p id="detallesCorreo" style="margin: 5px 0 0 0; font-size: 0.85em; color: var(--text-muted);">correo@aspv.com</p>
+
             <div style="margin-top: 10px; background: rgba(46, 204, 113, 0.1); border: 1px solid #2ecc71; color: #2ecc71; padding: 5px 10px; border-radius: 20px; font-size: 0.8em; display: inline-block;">En servicio activo</div>
         </div>
 
-        <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 15px 0;">
-
-        <div style="font-size: 0.9em; color: var(--text-muted); display: flex; flex-direction: column; gap: 10px;">
-            <div style="display: flex; justify-content: space-between;"><span>ID Empleado</span> <strong style="color: var(--text-color);">ASPV-AJ-042</strong></div>
-            <div style="display: flex; justify-content: space-between;"><span>Zona Cobertura</span> <strong style="color: var(--text-color);">Tabasco Central</strong></div>
+        <!-- SISTEMA DE PESTAÑAS ESTILO WHATSAPP -->
+        <div style="display: flex; border-bottom: 1px solid var(--border-color); margin-bottom: 15px;">
+            <div id="tabMedia" onclick="cambiarTab('Media')" style="flex: 1; text-align: center; padding: 10px; cursor: pointer; color: #2ecc71; border-bottom: 2px solid #2ecc71; font-weight: bold; font-size: 0.85em;">Archivos multimedia</div>
+            <div id="tabDocs" onclick="cambiarTab('Docs')" style="flex: 1; text-align: center; padding: 10px; cursor: pointer; color: var(--text-muted); font-weight: bold; font-size: 0.85em;">Documentos</div>
+            <div id="tabLinks" onclick="cambiarTab('Links')" style="flex: 1; text-align: center; padding: 10px; cursor: pointer; color: var(--text-muted); font-weight: bold; font-size: 0.85em;">Enlaces</div>
         </div>
 
-        <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 15px 0;">
-
-        <div>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <span style="font-size: 0.85em; font-weight: bold; color: var(--text-muted);">Archivos, enlaces y docs (14)</span>
-                <span style="font-size: 0.8em; color: var(--primary-color); cursor: pointer;">Ver todos ➔</span>
-            </div>
-
-            <div class="media-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-bottom: 15px;">
-                <div style="background: var(--bg-color); height: 75px; border-radius: 8px; border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center; font-size: 1.5em;">📸</div>
-                <div style="background: var(--bg-color); height: 75px; border-radius: 8px; border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center; font-size: 1.5em;">🚗</div>
-                <div style="background: var(--bg-color); height: 75px; border-radius: 8px; border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center; font-size: 1.5em; flex-direction: column;">
-                    <span style="font-size: 0.8em;">+11</span>
-                </div>
-            </div>
-
-            <div style="display: flex; flex-direction: column; gap: 8px;">
-                <div style="display: flex; gap: 10px; align-items: center; background: var(--bg-color); padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); cursor: pointer;">
-                    <span style="font-size: 1.5em;">📄</span>
-                    <div style="flex: 1; overflow: hidden;">
-                        <p style="margin: 0; font-size: 0.85em; color: var(--text-color); white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">DOA_SIN004.pdf</p>
-                        <span style="font-size: 0.7em; color: var(--text-muted);">640 KB • Hace 1 hora</span>
-                    </div>
-                </div>
-                <div style="display: flex; gap: 10px; align-items: center; background: var(--bg-color); padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); cursor: pointer;">
-                    <span style="font-size: 1.5em;">📊</span>
-                    <div style="flex: 1; overflow: hidden;">
-                        <p style="margin: 0; font-size: 0.85em; color: var(--text-color); white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Valuacion_Previa.xlsx</p>
-                        <span style="font-size: 0.7em; color: var(--text-muted);">410 KB • 08 Octubre</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
+        <!-- CONTENEDORES DE LAS PESTAÑAS -->
+        <div id="contenidoMedia" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; overflow-y: auto; flex: 1;"></div>
+        <div id="contenidoDocs" style="display: none; flex-direction: column; gap: 10px; overflow-y: auto; flex: 1;"></div>
+        <div id="contenidoLinks" style="display: none; flex-direction: column; gap: 10px; overflow-y: auto; flex: 1;"></div>
     </div>
 
+</div> <!-- Cierre de chat-container -->
+
+<!-- VISOR MULTIMEDIA DE PANTALLA COMPLETA -->
+<div id="visorMultimedia" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.95); z-index: 9999; flex-direction: column; align-items: center; justify-content: center;">
+    <button onclick="cerrarVisor()" style="position: absolute; top: 20px; right: 30px; background: transparent; border: none; color: white; font-size: 2em; cursor: pointer;">✖</button>
+
+    <img id="visorImg" style="display: none; max-width: 90%; max-height: 80%; border-radius: 8px; box-shadow: 0 5px 25px rgba(0,0,0,0.5);">
+    <video id="visorVid" controls style="display: none; max-width: 90%; max-height: 80%; border-radius: 8px; box-shadow: 0 5px 25px rgba(0,0,0,0.5);"></video>
+
+    <div style="margin-top: 20px; display: flex; gap: 20px;">
+        <a id="btnDescargarVisor" href="#" download style="background: #2ecc71; color: white; text-decoration: none; padding: 10px 25px; border-radius: 25px; font-weight: bold; display: flex; align-items: center; gap: 8px;">
+            ⬇ Descargar
+        </a>
+    </div>
 </div>
 
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>

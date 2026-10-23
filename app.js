@@ -28,7 +28,8 @@ const rolUsuario = localStorage.getItem('aspv_rol');
 const nombreUsuario = localStorage.getItem('aspv_nombre');
 const miUsuarioIdGbl = localStorage.getItem('aspv_id');
 
-if (!rolUsuario || rolUsuario !== 'Ajustador') window.location.href = 'login.html';
+// Aquí quitamos la restricción de Ajustador. Ahora cualquier usuario logueado puede entrar.
+if (!rolUsuario) window.location.href = 'login.html';
 document.addEventListener("DOMContentLoaded", () => { document.getElementById('nombreUsuarioUI').innerText = `Hola, ${nombreUsuario}`; });
 function cerrarSesion() { localStorage.clear(); window.location.href = 'login.html'; }
 
