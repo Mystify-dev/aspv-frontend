@@ -8,41 +8,53 @@
 </head>
 <body>
 
+<!-- Menú Lateral Unificado (IDÉNTICO A LOS DEMÁS) -->
 <aside class="sidebar">
     <img src="imagenes/LogoASPV.jpg" alt="Logo ASPV" style="width: 110px; margin-bottom: 15px; margin-top: 5px; border-radius: 12px;">
     <p style="color: var(--text-muted); font-size: 0.9em; margin-bottom: 40px;">GESTIÓN DE SINIESTROS</p>
 
     <nav style="display: flex; flex-direction: column; gap: 15px;" id="navMenu">
         <strong>Menú Principal</strong>
-        <a href="admin.html" id="btnAdmin" style="display: none; color: var(--text-color); text-decoration: none;">⚙️ Gerencia y Usuarios</a>
+
+        <!-- Enlaces: Orden unificado para evitar que los botones "brinquen" al cambiar de página -->
         <a href="resumen.html" id="btnAnalista" style="display: none; color: var(--text-color); text-decoration: none;">📊 Panel de Análisis</a>
+        <a href="pagos.html" id="btnPagos" style="display: none; color: var(--text-color); text-decoration: none;">💰 Panel de Pagos</a>
         <a href="index.html" id="btnAjustador" style="display: none; color: var(--text-color); text-decoration: none;">📁 Mis Expedientes</a>
-
-        <!-- Enlace al Muro Global -->
         <a href="muro.html" id="btnMuro" style="display: none; color: var(--text-color); text-decoration: none;">🌐 Muro Global</a>
-
         <a href="calendario.html" id="btnCalendario" style="display: none; color: var(--text-color); text-decoration: none;">📅 Calendario</a>
+        <a href="admin.html" id="btnAdmin" style="display: none; color: var(--text-color); text-decoration: none;">⚙️ Gerencia y Usuarios</a>
 
+        <!-- Script inteligente que muestra solo lo permitido según el rol -->
         <script>
+            // Función segura para mostrar botones sin causar errores
+            const mostrarMenu = (id) => {
+                const elemento = document.getElementById(id);
+                if (elemento) elemento.style.display = 'block';
+            };
+
             const rolActual = localStorage.getItem('aspv_rol');
 
             // TODOS los roles pueden ver el muro
-            if(document.getElementById('btnMuro')) {
-                document.getElementById('btnMuro').style.display = 'block';
-            }
+            mostrarMenu('btnMuro');
 
+            // Lógica de permisos por rol
             if (rolActual === 'Admin') {
-                document.getElementById('btnAdmin').style.display = 'block';
-                document.getElementById('btnAnalista').style.display = 'block';
-                document.getElementById('btnCalendario').style.display = 'block';
+                mostrarMenu('btnAdmin');
+                mostrarMenu('btnAnalista');
+                mostrarMenu('btnPagos');
+                mostrarMenu('btnCalendario');
             } else if (rolActual === 'Analista') {
-                document.getElementById('btnAnalista').style.display = 'block';
-                document.getElementById('btnCalendario').style.display = 'block';
+                mostrarMenu('btnAnalista');
+                mostrarMenu('btnCalendario');
+            } else if (rolActual === 'Analista de Pagos') {
+                mostrarMenu('btnPagos');
+                mostrarMenu('btnCalendario');
             } else if (rolActual === 'Ajustador') {
-                document.getElementById('btnAjustador').style.display = 'block';
-                document.getElementById('btnCalendario').style.display = 'block';
+                mostrarMenu('btnAjustador');
+                mostrarMenu('btnCalendario');
             }
 
+            // Resalta en azul la página actual automáticamente
             const urlActual = window.location.pathname.split('/').pop() || 'index.html';
             document.querySelectorAll('#navMenu a').forEach(enlace => {
                 if (enlace.getAttribute('href') === urlActual) {
@@ -52,6 +64,7 @@
             });
         </script>
 
+        <!-- Controles de Accesibilidad -->
         <div style="margin-top: 40px;">
             <p style="font-size: 0.8em; color: var(--text-muted); margin-bottom: 8px;">Apariencia:</p>
             <div style="display: flex; gap: 5px;">

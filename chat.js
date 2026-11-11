@@ -1,13 +1,29 @@
 document.addEventListener("DOMContentLoaded", () => {
     // ---------------------------------------------------------
+    // -2. CONTROL DE ACCESO Y PREFERENCIAS DE TEMA
+    // ---------------------------------------------------------
+    const miRolSesion = localStorage.getItem('aspv_rol') || 'Personal';
+    const miNombreSesion = localStorage.getItem('aspv_nombre') || 'Usuario';
+    const miUsuarioIdGbl = localStorage.getItem('aspv_id');
+
+    if (!localStorage.getItem('aspv_rol')) {
+        window.location.href = 'login.html';
+        return;
+    }
+
+    const temaGuardado = localStorage.getItem('aspv_tema');
+    const textoGuardado = localStorage.getItem('aspv_texto');
+    if (temaGuardado === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+    else document.documentElement.removeAttribute('data-theme');
+    if (textoGuardado) document.documentElement.setAttribute('data-text', textoGuardado);
+
+    // ---------------------------------------------------------
     // -1. MOSTRAR LA SESIÓN ACTUAL EN LA BARRA LATERAL
     // ---------------------------------------------------------
-    const miNombreSesion = localStorage.getItem('aspv_nombre') || 'Usuario';
-    const miRolSesion = localStorage.getItem('aspv_rol') || 'Personal';
-
     const domNombre = document.getElementById('miNombreSesion');
     const domRol = document.getElementById('miRolSesion');
     const domInicial = document.getElementById('miInicialSesion');
+    const miIndicadorEstado = document.getElementById('miIndicadorEstado');
 
     if (domNombre) domNombre.innerText = miNombreSesion;
     if (domRol) domRol.innerText = miRolSesion;
@@ -16,45 +32,218 @@ document.addEventListener("DOMContentLoaded", () => {
     // ---------------------------------------------------------
     // INICIALIZACIÓN DE SOCKET.IO Y ESTADO DEL USUARIO
     // ---------------------------------------------------------
-    const socket = io(); // Asegúrate de que el script de socket.io esté cargado en tu HTML
-    const miUsuarioIdGbl = localStorage.getItem('aspv_id');
+    const socket = window.socket || io("http://localhost:3000");
 
     let idContactoActual = null; // Para el estado (En línea/Última vez)
     let usuarioDestinoActual = null; // Para saber a quién le enviamos mensajes en la BD
 
-    // Registrar nuestro usuario en el servidor al conectar
-    if (miUsuarioIdGbl) {
+    // Diccionario en memoria con el estado de cada usuario: { [userId]: { estado: 'online' | 'offline', ultimaVez: string | null } }
+    const estadosUsuarios = {};
+
+    const estadoContactoActivo = document.getElementById('estadoContactoActivo');
+    const cabeceraPuntoEstado = document.getElementById('cabeceraPuntoEstado');
+    const detallesBadgeEstado = document.getElementById('detallesBadgeEstado');
+
+    // Registrar nuestro usuario en el servidor al conectar o reconectar
+    socket.on('connect', () => {
+        if (miUsuarioIdGbl) {
+            socket.emit('registerUser', miUsuarioIdGbl);
+        }
+        if (miIndicadorEstado) {
+            miIndicadorEstado.style.background = '#2ecc71';
+            miIndicadorEstado.style.boxShadow = '0 0 5px #2ecc71';
+            miIndicadorEstado.title = 'En línea';
+        }
+        if (idContactoActual) {
+            socket.emit('consultarEstado', idContactoActual);
+        }
+    });
+
+    socket.on('disconnect', () => {
+        if (miIndicadorEstado) {
+            miIndicadorEstado.style.background = '#e74c3c';
+            miIndicadorEstado.style.boxShadow = 'none';
+            miIndicadorEstado.title = 'Sin conexión al servidor';
+        }
+    });
+
+    if (socket.connected && miUsuarioIdGbl) {
         socket.emit('registerUser', miUsuarioIdGbl);
     }
 
-    // Referencia al elemento HTML donde se mostrará el estado
-    const estadoContactoActivo = document.getElementById('estadoContactoActivo');
+    // Normalizar cualquier variante de payload que envíe el backend
+    function normalizarDatosEstado(data) {
+        if (!data) return null;
+        const userId = data.userId ?? data.usuarioId ?? data.UsuarioID ?? data.id;
+        if (userId === undefined || userId === null) return null;
 
-    // Escuchar cambios de estado desde el servidor
-    socket.on('estadoUsuarioCambio', (data) => {
-        // Solo actualizamos la UI si el cambio de estado es del contacto actual
-        if (idContactoActual && data.userId.toString() === idContactoActual.toString()) {
-            actualizarEstadoUI(data.estado, data.ultimaVez);
+        let estadoRaw = data.estado ?? data.status ?? data.enLinea ?? data.EnLinea ?? data.online;
+        let esOnline = false;
+        if (typeof estadoRaw === 'boolean') {
+            esOnline = estadoRaw;
+        } else if (typeof estadoRaw === 'number') {
+            esOnline = estadoRaw === 1;
+        } else if (typeof estadoRaw === 'string') {
+            const val = estadoRaw.toLowerCase().trim();
+            esOnline = (val === 'online' || val === 'en linea' || val === 'en línea' || val === 'activo' || val === 'true' || val === 'conectado');
         }
-    });
+
+        const ultimaVez = data.ultimaVez ?? data.ultimaConexion ?? data.UltimaConexion ?? data.lastSeen ?? data.fechaDesconexion ?? null;
+        return {
+            userId: String(userId),
+            estado: esOnline ? 'online' : 'offline',
+            ultimaVez
+        };
+    }
+
+    // Formatear tiempo transcurrido y fecha de última conexión
+    function formatearTiempoUltimaConexion(ultimaVez) {
+        if (!ultimaVez) return 'Desconectado';
+
+        const fecha = new Date(ultimaVez);
+        if (isNaN(fecha.getTime())) return 'Desconectado';
+
+        const ahora = new Date();
+        const diffMs = ahora - fecha;
+        const diffSegundos = Math.floor(diffMs / 1000);
+        const diffMinutos = Math.floor(diffSegundos / 60);
+        const diffHoras = Math.floor(diffMinutos / 60);
+
+        const horaFormateada = fecha.toLocaleTimeString('es-MX', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        });
+
+        // Si fue hace menos de 1 minuto
+        if (diffSegundos < 60) {
+            return 'Desconectado • hace unos momentos';
+        }
+
+        // Si fue hace menos de 60 minutos ("hace X minutos")
+        if (diffMinutos < 60) {
+            return `Desconectado • hace ${diffMinutos} ${diffMinutos === 1 ? 'minuto' : 'minutos'}`;
+        }
+
+        // Comparar días calendario (Hoy / Ayer / Fecha anterior)
+        const hoy = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
+        const ayer = new Date(hoy);
+        ayer.setDate(hoy.getDate() - 1);
+        const diaFecha = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate());
+
+        if (diaFecha.getTime() === hoy.getTime()) {
+            return `Desconectado • hace ${diffHoras} ${diffHoras === 1 ? 'hora' : 'horas'} (últ. vez a las ${horaFormateada})`;
+        } else if (diaFecha.getTime() === ayer.getTime()) {
+            return `Desconectado • últ. vez ayer a las ${horaFormateada}`;
+        } else {
+            const fechaCorta = fecha.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' });
+            return `Desconectado • últ. vez el ${fechaCorta} a las ${horaFormateada}`;
+        }
+    }
+
+    function formatearTextoCortoContacto(estadoInfo) {
+        if (!estadoInfo) return 'Click para chatear';
+        if (estadoInfo.estado === 'online') return '🟢 En línea';
+        if (estadoInfo.ultimaVez) {
+            return formatearTiempoUltimaConexion(estadoInfo.ultimaVez).replace('Desconectado • ', '');
+        }
+        return 'Desconectado';
+    }
+
+    // Actualizar indicadores visuales de un usuario en la lista lateral y en la ventana activa
+    function aplicarEstadoUsuario(userId, estado, ultimaVez = null) {
+        const idStr = String(userId);
+        estadosUsuarios[idStr] = { estado, ultimaVez };
+
+        // 1. Actualizar en la lista lateral de contactos (si está renderizado)
+        const puntoSidebar = document.getElementById(`punto-estado-${idStr}`);
+        const subtextoSidebar = document.getElementById(`subtexto-estado-${idStr}`);
+
+        if (puntoSidebar) {
+            puntoSidebar.style.backgroundColor = estado === 'online' ? '#2ecc71' : '#95a5a6';
+            puntoSidebar.style.boxShadow = estado === 'online' ? '0 0 5px #2ecc71' : 'none';
+            puntoSidebar.title = estado === 'online' ? 'En línea' : formatearTiempoUltimaConexion(ultimaVez);
+        }
+        if (subtextoSidebar) {
+            subtextoSidebar.innerText = formatearTextoCortoContacto(estadosUsuarios[idStr]);
+            subtextoSidebar.style.color = estado === 'online' ? '#2ecc71' : 'var(--text-muted)';
+        }
+
+        // 2. Si es el contacto del chat activo, actualizar cabecera y panel de detalles
+        if (idContactoActual && String(idContactoActual) === idStr) {
+            actualizarEstadoUI(estado, ultimaVez);
+        }
+    }
 
     function actualizarEstadoUI(estado, ultimaVez = null) {
         if (!estadoContactoActivo) return;
 
         if (estado === 'online') {
             estadoContactoActivo.innerText = 'En línea';
-            estadoContactoActivo.style.color = '#2ecc71'; // Verde
-        } else {
-            if (ultimaVez) {
-                const fecha = new Date(ultimaVez);
-                const horaFormateada = fecha.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                estadoContactoActivo.innerText = `Última vez hoy a las ${horaFormateada}`;
-            } else {
-                estadoContactoActivo.innerText = 'Desconectado';
+            estadoContactoActivo.style.color = '#2ecc71';
+
+            if (cabeceraPuntoEstado) {
+                cabeceraPuntoEstado.style.backgroundColor = '#2ecc71';
+                cabeceraPuntoEstado.style.boxShadow = '0 0 5px #2ecc71';
             }
-            estadoContactoActivo.style.color = 'var(--text-muted)'; // Gris
+            if (detallesBadgeEstado) {
+                detallesBadgeEstado.innerText = '🟢 En línea';
+                detallesBadgeEstado.style.background = 'rgba(46, 204, 113, 0.1)';
+                detallesBadgeEstado.style.borderColor = '#2ecc71';
+                detallesBadgeEstado.style.color = '#2ecc71';
+            }
+        } else {
+            const textoDesconectado = formatearTiempoUltimaConexion(ultimaVez);
+            estadoContactoActivo.innerText = textoDesconectado;
+            estadoContactoActivo.style.color = 'var(--text-muted)';
+
+            if (cabeceraPuntoEstado) {
+                cabeceraPuntoEstado.style.backgroundColor = '#95a5a6';
+                cabeceraPuntoEstado.style.boxShadow = 'none';
+            }
+            if (detallesBadgeEstado) {
+                detallesBadgeEstado.innerText = textoDesconectado;
+                detallesBadgeEstado.style.background = 'rgba(149, 165, 166, 0.1)';
+                detallesBadgeEstado.style.borderColor = '#95a5a6';
+                detallesBadgeEstado.style.color = 'var(--text-muted)';
+            }
         }
     }
+
+    // Escuchar cambios de estado individuales desde el servidor
+    socket.on('estadoUsuarioCambio', (data) => {
+        const info = normalizarDatosEstado(data);
+        if (info) {
+            aplicarEstadoUsuario(info.userId, info.estado, info.ultimaVez);
+        }
+    });
+
+    // Escuchar respuesta directa a consultarEstado (si el backend emite 'respuestaEstado' o 'estadoUsuario')
+    socket.on('respuestaEstado', (data) => {
+        const info = normalizarDatosEstado(data);
+        if (info) {
+            aplicarEstadoUsuario(info.userId, info.estado, info.ultimaVez);
+        }
+    });
+
+    // Escuchar lista masiva de estados si el servidor la envía al conectar
+    socket.on('listaEstadosUsuarios', (lista) => {
+        if (Array.isArray(lista)) {
+            lista.forEach(item => {
+                const info = normalizarDatosEstado(item);
+                if (info) aplicarEstadoUsuario(info.userId, info.estado, info.ultimaVez);
+            });
+        }
+    });
+
+    // Refrescar dinámicamente el texto "hace X minutos" cada 30 segundos sin recargar
+    setInterval(() => {
+        Object.entries(estadosUsuarios).forEach(([userId, info]) => {
+            if (info.estado !== 'online' && info.ultimaVez) {
+                aplicarEstadoUsuario(userId, info.estado, info.ultimaVez);
+            }
+        });
+    }, 30000);
 
 
     // ---------------------------------------------------------
@@ -94,6 +283,18 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
 
                 listaContactosGlobal = todosLosUsuarios.filter(u => u.UsuarioID.toString() !== miUsuarioIdGbl.toString());
+
+                // Inicializar estado desde la BD si el endpoint /api/usuarios incluye campos de presencia
+                listaContactosGlobal.forEach(u => {
+                    const infoBD = normalizarDatosEstado(u);
+                    if (infoBD && (u.EstadoConexion !== undefined || u.EnLinea !== undefined || u.UltimaConexion !== undefined || u.ultimaVez !== undefined || u.estado !== undefined)) {
+                        estadosUsuarios[String(u.UsuarioID)] = {
+                            estado: infoBD.estado,
+                            ultimaVez: infoBD.ultimaVez
+                        };
+                    }
+                });
+
                 renderizarChatsRecientes();
             }
         } catch (error) {
@@ -155,31 +356,49 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function dibujarLista(arregloUsuarios) {
         arregloUsuarios.forEach(u => {
+            const idStr = String(u.UsuarioID);
+            const estadoInfo = estadosUsuarios[idStr];
+            const esOnline = estadoInfo && estadoInfo.estado === 'online';
+            const colorPunto = esOnline ? '#2ecc71' : '#95a5a6';
+            const sombraPunto = esOnline ? '0 0 5px #2ecc71' : 'none';
+            const textoSub = formatearTextoCortoContacto(estadoInfo);
+            const colorSub = esOnline ? '#2ecc71' : 'var(--text-muted)';
+
             // Evaluamos si el usuario tiene foto en la base de datos
-            let fotoHTML = '';
+            let avatarInternoHTML = '';
             if (u.FotoPerfil && u.FotoPerfil !== '') {
-                fotoHTML = `<img src="http://localhost:3000/${u.FotoPerfil}" style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1px solid var(--border-color);">`;
+                avatarInternoHTML = `<img src="http://localhost:3000/${u.FotoPerfil}" style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border-color);">`;
             } else {
                 const inicial = u.Nombre.charAt(0).toUpperCase();
-                fotoHTML = `<div style="width: 45px; height: 45px; border-radius: 50%; background-color: var(--primary-color); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0;">${inicial}</div>`;
+                avatarInternoHTML = `<div style="width: 45px; height: 45px; border-radius: 50%; background-color: var(--primary-color); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold;">${inicial}</div>`;
             }
 
+            const fotoHTML = `
+                <div style="position: relative; width: 45px; height: 45px; flex-shrink: 0;">
+                    ${avatarInternoHTML}
+                    <span id="punto-estado-${idStr}" style="position: absolute; bottom: 0; right: 0; width: 12px; height: 12px; border-radius: 50%; background-color: ${colorPunto}; box-shadow: ${sombraPunto}; border: 2px solid var(--panel-bg);"></span>
+                </div>
+            `;
+
             contenedorDeContactos.innerHTML += `
-                <div class="chat-item" style="display: flex; align-items: center; gap: 15px; padding: 15px; border-bottom: 1px solid var(--border-color); cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='var(--panel-bg)'" onmouseout="this.style.background='transparent'" onclick="abrirChatGlobal(${u.UsuarioID}, '${u.Nombre}')">
+                <div class="chat-item" style="display: flex; align-items: center; gap: 15px; padding: 15px; border-bottom: 1px solid var(--border-color); cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='var(--panel-bg)'" onmouseout="this.style.background='transparent'" onclick="abrirChatGlobal(${u.UsuarioID}, '${u.Nombre.replace(/'/g, "\\'")}')">
                     
                     ${fotoHTML}
                     
-                    <div style="flex: 1;">
+                    <div style="flex: 1; overflow: hidden;">
                         <div style="display: flex; justify-content: space-between; align-items: baseline;">
                             <strong style="color: var(--text-color);">${u.Nombre}</strong>
                             <span style="font-size: 0.75em; color: var(--text-muted);">${u.Rol}</span>
                         </div>
-                        <p style="margin: 3px 0 0 0; font-size: 0.85em; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px;">
-                            Click para chatear
+                        <p id="subtexto-estado-${idStr}" style="margin: 3px 0 0 0; font-size: 0.8em; color: ${colorSub}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px;">
+                            ${textoSub}
                         </p>
                     </div>
                 </div>
             `;
+
+            // Consultar el estado actual al servidor para mantener la lista sincronizada
+            socket.emit('consultarEstado', u.UsuarioID);
         });
     }
 
@@ -209,6 +428,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const rol = localStorage.getItem('aspv_rol');
             if (rol === 'Admin') window.location.href = 'admin.html';
             else if (rol === 'Analista') window.location.href = 'resumen.html';
+            else if (rol === 'Analista de Pagos') window.location.href = 'pagos.html';
             else window.location.href = 'index.html';
         });
     }
@@ -268,9 +488,12 @@ document.addEventListener("DOMContentLoaded", () => {
         idContactoActual = idDestino;
         usuarioDestinoActual = idDestino;
 
-        // 1. Consultar el estado en tiempo real (En línea) mediante Socket.io
-        if (estadoContactoActivo) {
-            estadoContactoActivo.innerText = 'Cargando estado...';
+        // 1. Mostrar estado en caché si ya lo tenemos o consultar mediante Socket.io
+        const estadoGuardado = estadosUsuarios[String(idDestino)];
+        if (estadoGuardado) {
+            actualizarEstadoUI(estadoGuardado.estado, estadoGuardado.ultimaVez);
+        } else if (estadoContactoActivo) {
+            estadoContactoActivo.innerText = 'Verificando conexión...';
             estadoContactoActivo.style.color = 'var(--text-muted)';
         }
         socket.emit('consultarEstado', idDestino);

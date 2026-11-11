@@ -31,50 +31,52 @@ function cerrarSesion() {
 }
 
 // ==========================================
-// DICCIONARIO DINÁMICO DE TARIFAS
+// VARIABLES GLOBALES DE BASE DE DATOS
 // ==========================================
-const TARIFAS_MUNICIPIO = {
-    "merida": 230,
-    "valladolid": 550
-    // "cancun": 600, <-- Ejemplo para agregar más tarde
-    // "tijuana": 450
-};
-const TARIFA_BASE = 230; // Tarifa por defecto si el municipio no está en la lista
+let baseUsuarios = [];
+let baseExpedientes = [];
 
-function obtenerTarifa(lugarString) {
-    if (!lugarString) return TARIFA_BASE;
-    // Extraemos el municipio de "Municipio, Estado" y quitamos acentos
-    const municipio = lugarString.split(',')[0].trim().toLowerCase()
-        .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+const fmtMXN = (valor) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(Number(valor) || 0);
 
-    return TARIFAS_MUNICIPIO[municipio] || TARIFA_BASE;
+// Calcula cuánto vale un siniestro según las tarifas del ajustador en la BD
+function calcularPagoSiniestro(exp) {
+    const ajUsuario = baseUsuarios.find(u => u.UsuarioID === exp.AjustadorID || u.Nombre === exp.AjustadorNombre);
+
+    const local = ajUsuario && ajUsuario.CostoLocal !== null ? parseFloat(ajUsuario.CostoLocal) : (parseFloat(exp.CostoLocal) || 230);
+    const foraneo = ajUsuario && ajUsuario.CostoForaneo !== null ? parseFloat(ajUsuario.CostoForaneo) : (parseFloat(exp.CostoForaneo) || 230);
+    const kmTarifa = ajUsuario && ajUsuario.CostoKm !== null ? parseFloat(ajUsuario.CostoKm) : (parseFloat(exp.CostoKm) || 3.00);
+    const kmInbursaTarifa = ajUsuario && ajUsuario.CostoKmInbursa !== null ? parseFloat(ajUsuario.CostoKmInbursa) : (parseFloat(exp.CostoKmInbursa) || 3.00);
+
+    const tipoCob = (exp.TipoCobertura || "Local").toLowerCase();
+    const esForaneo = tipoCob.includes("foraneo") || tipoCob.includes("foráneo") || tipoCob.includes("carretero");
+    const seguro = (exp.Seguro || "").toUpperCase();
+
+    let totalPago = esForaneo ? foraneo : local;
+    const kms = parseFloat(exp.Kilometros) || 0;
+    if (kms > 0) {
+        const precioKm = seguro.includes("INBURSA") ? kmInbursaTarifa : kmTarifa;
+        totalPago += (kms * precioKm);
+    }
+    return totalPago;
 }
-
-let baseExpedientes = []; // Guardamos la BD aquí
 
 // ==========================================
 // MOTOR DE QUINCENAS Y FECHAS
 // ==========================================
 function obtenerNombreQuincena(fechaString) {
     if (!fechaString) return "Fecha Desconocida";
-
-    // Evitamos problemas de zona horaria aislando YYYY-MM-DD
     const soloFecha = fechaString.split('T')[0];
     const partes = soloFecha.split('-');
     if (partes.length !== 3) return "Fecha Inválida";
 
     const anio = partes[0];
-    const mesNum = parseInt(partes[1], 10) - 1; // getMonth va de 0 a 11
+    const mesNum = parseInt(partes[1], 10) - 1;
     const dia = parseInt(partes[2], 10);
 
     const meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-    const nombreMes = meses[mesNum];
-    const q = dia <= 15 ? '1ra' : '2da';
-
-    return `${q} Quincena de ${nombreMes} ${anio}`;
+    return `${dia <= 15 ? '1ra' : '2da'} Quincena de ${meses[mesNum]} ${anio}`;
 }
 
-// Función para el botón "Ver Todo"
 function limpiarFiltros() {
     document.getElementById('filtroMes').value = '';
     document.getElementById('filtroQuincena').value = 'Todas';
@@ -105,16 +107,22 @@ function cambiarTexto(tamano) {
 }
 
 // ==========================================
-// LÓGICA DE PAGOS Y NÓMINA (CON FILTRO DUAL)
+// DESCARGA DE DATOS DESDE BD (USUARIOS + EXPEDIENTES)
 // ==========================================
-async function descargarExpedientesDesdeBD() {
+async function descargarDatosDesdeBD() {
     try {
-        const respuesta = await fetch('http://localhost:3000/api/lista-expedientes');
-        if (respuesta.ok) {
-            baseExpedientes = await respuesta.json();
-            cargarTablaPagos(); // Dispara la tabla por primera vez
-        }
-    } catch (error) { console.error("Error al descargar expedientes:", error); }
+        const [resUsuarios, resExpedientes] = await Promise.all([
+            fetch('http://localhost:3000/api/usuarios'),
+            fetch('http://localhost:3000/api/lista-expedientes')
+        ]);
+
+        if (resUsuarios.ok) baseUsuarios = await resUsuarios.json();
+        if (resExpedientes.ok) baseExpedientes = await resExpedientes.json();
+
+        cargarTablaPagos();
+    } catch (error) {
+        console.error("Error al sincronizar datos de nómina:", error);
+    }
 }
 
 function cargarTablaPagos() {
@@ -124,12 +132,10 @@ function cargarTablaPagos() {
     const mesSeleccionado = document.getElementById('filtroMes').value;
     const quincenaSeleccionada = document.getElementById('filtroQuincena').value;
 
-    // 1. Filtrar los datos en base a las opciones elegidas
+    // 1. Filtrar Expedientes por Mes y Quincena
     let expedientesFiltrados = baseExpedientes.filter(exp => {
         if (!exp.FechaOcurrencia) return false;
-
-        const soloFecha = exp.FechaOcurrencia.split('T')[0];
-        const [expYear, expMonth, expDayStr] = soloFecha.split('-');
+        const [expYear, expMonth, expDayStr] = exp.FechaOcurrencia.split('T')[0].split('-');
         const expDay = parseInt(expDayStr, 10);
 
         if (mesSeleccionado) {
@@ -143,24 +149,158 @@ function cargarTablaPagos() {
         return true;
     });
 
-    // 2. Actualizar las Tarjetas (KPIs) con los datos filtrados
-    const activos = expedientesFiltrados.filter(exp => exp.Estado !== 'Concluido').length;
-    const concluidosList = expedientesFiltrados.filter(exp => exp.Estado === 'Concluido');
-    const cantConcluidos = concluidosList.length;
+    // 2. Separar Personal Fijo vs Ajustadores desde la Base de Datos
+    const empleadosFijos = baseUsuarios.filter(u => u.Rol !== 'Ajustador');
+    const ajustadoresLista = baseUsuarios.filter(u => u.Rol === 'Ajustador');
 
-    // Cálculo dinámico de Nómina Global sumando la tarifa de cada lugar
-    let nominaGlobal = 0;
-    concluidosList.forEach(exp => {
-        nominaGlobal += obtenerTarifa(exp.Lugar);
+    // Multiplicador: 0.5 si es 1ra o 2da Quincena, 1 si es Todo el Mes
+    const multiplicadorFijo = (quincenaSeleccionada === 'Todas') ? 1 : 0.5;
+
+    let totalNominaFija = 0;
+    empleadosFijos.forEach(emp => {
+        totalNominaFija += ((parseFloat(emp.SueldoMensual) || 0) * multiplicadorFijo);
     });
 
-    document.getElementById('kpiActivos').innerText = activos;
-    document.getElementById('kpiConcluidos').innerText = cantConcluidos;
-    document.getElementById('kpiTotalPagos').innerText = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(nominaGlobal);
+    const activos = expedientesFiltrados.filter(exp => exp.Estado !== 'Concluido').length;
+    const concluidosList = expedientesFiltrados.filter(exp => exp.Estado === 'Concluido');
 
-    // 3. Pintar la tabla
+    let totalNominaVariable = 0;
+    concluidosList.forEach(exp => {
+        totalNominaVariable += calcularPagoSiniestro(exp);
+    });
+
+    const nominaGlobal = totalNominaFija + totalNominaVariable;
+
+    document.getElementById('kpiActivos').innerText = activos;
+    document.getElementById('kpiConcluidos').innerText = concluidosList.length;
+    document.getElementById('kpiTotalPagos').innerText = fmtMXN(nominaGlobal);
+
     contenedor.innerHTML = '';
 
+    // ====================================================
+    // TABLA 1: PERSONAL ADMINISTRATIVO (SUELDO FIJO)
+    // ====================================================
+    const lblPeriodoFijo = (quincenaSeleccionada === 'Todas') ? '(Mes Completo - 100%)' : `(${quincenaSeleccionada} Quincena - 50%)`;
+    let htmlFijos = `
+        <div class="bloque-ajustador" style="margin-bottom: 30px;">
+            <div class="header-ajustador" style="background-color: #002060; border: 1px solid #1a3a78;">
+                <h4 style="margin: 0; color: white; font-size: 1.05em;">
+                    🏢 Personal Administrativo y Oficina (Sueldo Fijo) <span style="font-size: 0.8em; color: #bdc3c7;">${lblPeriodoFijo}</span>
+                </h4>
+                <div class="resumen-nomina-bar">
+                    <span class="resumen-nomina-total">
+                        💰 Total Nómina Fija: <strong style="color: #2ecc71; font-size: 1.15em;">${fmtMXN(totalNominaFija)}</strong>
+                    </span>
+                </div>
+            </div>
+            <table style="width: 100%; text-align: left; border-collapse: collapse; font-size: 0.9em; background: var(--bg-color);">
+                <thead>
+                <tr style="border-bottom: 2px solid var(--border-color); color: var(--text-muted); background: rgba(0,0,0,0.2);">
+                    <th style="padding: 12px 10px;">NOMBRE DEL EMPLEADO</th>
+                    <th style="padding: 12px 10px;">PUESTO</th>
+                    <th style="padding: 12px 10px;">CIUDAD</th>
+                    <th style="padding: 12px 10px; text-align: right;">SUELDO MENSUAL BASE</th>
+                    <th style="padding: 12px 10px; text-align: right; color: var(--primary-color);">PAGO CALCULADO</th>
+                    <th style="padding: 12px 10px; text-align: center;">CONFIGURAR</th>
+                </tr>
+                </thead>
+                <tbody>
+    `;
+
+    empleadosFijos.forEach(emp => {
+        const sueldoBase = parseFloat(emp.SueldoMensual) || 0;
+        const pagoPeriodo = sueldoBase * multiplicadorFijo;
+        const puestoTxt = (emp.Puesto || emp.Rol || '').toUpperCase();
+        const ciudadTxt = (emp.Ciudad || 'MÉRIDA').toUpperCase();
+
+        htmlFijos += `
+            <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 12px 10px; font-weight: bold;">${emp.Nombre.toUpperCase()}</td>
+                <td style="padding: 12px 10px; color: var(--text-muted);">${puestoTxt}</td>
+                <td style="padding: 12px 10px;">${ciudadTxt}</td>
+                <td style="padding: 12px 10px; text-align: right; color: var(--text-muted);">${sueldoBase > 0 ? fmtMXN(sueldoBase) : '<span style="color:#f39c12;">Sin asignar ($0.00)</span>'}</td>
+                <td style="padding: 12px 10px; text-align: right; font-weight: bold; color: #2ecc71;">${fmtMXN(pagoPeriodo)}</td>
+                <td style="padding: 12px 10px; text-align: center;">
+                    <button onclick="abrirModalNomina(${emp.UsuarioID})" style="background: transparent; color: #f39c12; border: 1px solid #f39c12; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 0.8em; font-weight: bold;">
+                        ✏️ Asignar Sueldo
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+
+    htmlFijos += `</tbody></table></div>`;
+    contenedor.innerHTML += htmlFijos;
+
+    // ====================================================
+    // TABLA 2: TABULADOR Y RESUMEN DE AJUSTADORES (COMO TU EXCEL)
+    // ====================================================
+    let htmlTabuladorAjustadores = `
+        <div class="bloque-ajustador" style="margin-bottom: 35px;">
+            <div class="header-ajustador" style="background-color: #002060; border: 1px solid #1a3a78;">
+                <h4 style="margin: 0; color: white; font-size: 1.05em;">
+                    🚗 Tabulador Oficial y Resumen de Ajustadores
+                </h4>
+                <div class="resumen-nomina-bar">
+                    <span class="resumen-nomina-total">
+                        💰 Total Comisiones Ajustadores: <strong style="color: #2ecc71; font-size: 1.15em;">${fmtMXN(totalNominaVariable)}</strong>
+                    </span>
+                </div>
+            </div>
+            <table style="width: 100%; text-align: left; border-collapse: collapse; font-size: 0.88em; background: var(--bg-color);">
+                <thead>
+                <tr style="border-bottom: 2px solid var(--border-color); color: var(--text-muted); background: rgba(0,0,0,0.2);">
+                    <th style="padding: 12px 8px;">NOMBRE DEL EMPLEADO</th>
+                    <th style="padding: 12px 8px;">PUESTO</th>
+                    <th style="padding: 12px 8px;">CIUDAD</th>
+                    <th style="padding: 12px 8px; text-align: right;">COSTO ATENCIÓN LOCAL</th>
+                    <th style="padding: 12px 8px; text-align: right;">COSTO ATENCIÓN FORÁNEO</th>
+                    <th style="padding: 12px 8px; text-align: right;">COSTO POR KM</th>
+                    <th style="padding: 12px 8px; text-align: right;">COSTO KM INBURSA</th>
+                    <th style="padding: 12px 8px; text-align: center;">CONCLUIDOS</th>
+                    <th style="padding: 12px 8px; text-align: right; color: var(--primary-color);">PAGO GENERADO</th>
+                    <th style="padding: 12px 8px; text-align: center;">TARIFAS</th>
+                </tr>
+                </thead>
+                <tbody>
+    `;
+
+    ajustadoresLista.forEach(aj => {
+        const misSiniestrosConcluidos = concluidosList.filter(e => e.AjustadorID === aj.UsuarioID || e.AjustadorNombre === aj.Nombre);
+        let sumaComisiones = 0;
+        misSiniestrosConcluidos.forEach(exp => { sumaComisiones += calcularPagoSiniestro(exp); });
+
+        const cLocal = parseFloat(aj.CostoLocal) || 0;
+        const cForaneo = parseFloat(aj.CostoForaneo) || 0;
+        const cKm = parseFloat(aj.CostoKm) || 0;
+        const cKmInb = parseFloat(aj.CostoKmInbursa) || 0;
+
+        htmlTabuladorAjustadores += `
+            <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 12px 8px; font-weight: bold;">${aj.Nombre.toUpperCase()}</td>
+                <td style="padding: 12px 8px; color: var(--text-muted);">${(aj.Puesto || 'AJUSTADOR').toUpperCase()}</td>
+                <td style="padding: 12px 8px;">${(aj.Ciudad || 'MÉRIDA').toUpperCase()}</td>
+                <td style="padding: 12px 8px; text-align: right;">${fmtMXN(cLocal)}</td>
+                <td style="padding: 12px 8px; text-align: right;">${fmtMXN(cForaneo)}</td>
+                <td style="padding: 12px 8px; text-align: right;">${cKm > 0 ? fmtMXN(cKm) : '$ -'}</td>
+                <td style="padding: 12px 8px; text-align: right;">${cKmInb > 0 ? fmtMXN(cKmInb) : '$ -'}</td>
+                <td style="padding: 12px 8px; text-align: center; font-weight: bold; color: #2ecc71;">${misSiniestrosConcluidos.length}</td>
+                <td style="padding: 12px 8px; text-align: right; font-weight: bold; color: #2ecc71;">${fmtMXN(sumaComisiones)}</td>
+                <td style="padding: 12px 8px; text-align: center;">
+                    <button onclick="abrirModalNomina(${aj.UsuarioID})" style="background: transparent; color: var(--primary-color); border: 1px solid var(--primary-color); padding: 4px 10px; border-radius: 5px; cursor: pointer; font-size: 0.8em; font-weight: bold;">
+                        ✏️ Tarifas
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+
+    htmlTabuladorAjustadores += `</tbody></table></div>`;
+    contenedor.innerHTML += htmlTabuladorAjustadores;
+
+    // ====================================================
+    // TABLA 3: DESGLOSE DETALLADO DE EXPEDIENTES POR AJUSTADOR
+    // ====================================================
     const agrupados = expedientesFiltrados.reduce((acc, exp) => {
         const ajustador = exp.AjustadorNombre || 'Sin asignar';
         if (!acc[ajustador]) acc[ajustador] = [];
@@ -171,28 +311,29 @@ function cargarTablaPagos() {
     for (const [ajustador, lista] of Object.entries(agrupados)) {
         const totalSiniestros = lista.length;
         const listaConcluidos = lista.filter(e => e.Estado === 'Concluido');
-        const cantidadConcluidos = listaConcluidos.length;
 
-        // Cálculo dinámico para la quincena de este ajustador en específico
         let totalQuincena = 0;
-        listaConcluidos.forEach(exp => {
-            totalQuincena += obtenerTarifa(exp.Lugar);
-        });
+        listaConcluidos.forEach(exp => { totalQuincena += calcularPagoSiniestro(exp); });
 
-        const totalQuincenaFmt = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalQuincena);
+        const ajObj = baseUsuarios.find(u => u.Nombre === ajustador);
+        const cLocal = ajObj ? (parseFloat(ajObj.CostoLocal) || 230) : 230;
+        const cForaneo = ajObj ? (parseFloat(ajObj.CostoForaneo) || 230) : 230;
+        const cKm = ajObj ? (parseFloat(ajObj.CostoKm) || 3) : 3;
 
         let htmlTabla = `
-            <div class="bloque-ajustador">
+            <div class="bloque-ajustador detalle-expedientes-ajustador">
                 <div class="header-ajustador">
-                    <h4 style="margin: 0; color: var(--primary-color); font-size: 1.05em;">
-                        📁 Siniestros de: ${ajustador}
-                    </h4>
+                    <div>
+                        <h4 style="margin: 0; color: var(--primary-color); font-size: 1.05em;">📁 Siniestros de: ${ajustador}</h4>
+                        <span style="font-size: 0.75em; color: var(--text-muted);">
+                            Tarifas en BD: Local ${fmtMXN(cLocal)} | Foráneo ${fmtMXN(cForaneo)} | KM ${fmtMXN(cKm)}
+                        </span>
+                    </div>
                     <div class="resumen-nomina-bar">
                         <span>📋 Total: <strong>${totalSiniestros}</strong></span>
-                        <span>✅ Concluidos: <strong style="color: #2ecc71;">${cantidadConcluidos}</strong></span>
+                        <span>✅ Concluidos: <strong style="color: #2ecc71;">${listaConcluidos.length}</strong></span>
                         <span class="resumen-nomina-total">
-                            💰 Pago Generado: <strong style="color: #2ecc71; font-size: 1.15em;">${totalQuincenaFmt}</strong>
-                            <small style="color: var(--text-muted); display: block; font-size: 0.8em;">(Basado en zonas)</small>
+                            💰 Comisiones: <strong style="color: #2ecc71; font-size: 1.15em;">${fmtMXN(totalQuincena)}</strong>
                         </span>
                     </div>
                 </div>
@@ -201,10 +342,10 @@ function cargarTablaPagos() {
                     <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-muted);">
                         <th style="padding: 12px 10px;">ID Siniestro</th>
                         <th style="padding: 12px 10px;">Lugar</th>
-                        <th style="padding: 12px 10px;">Seguro</th>
-                        <th style="padding: 12px 10px;">Fecha Ocurrencia</th>
-                        <th style="padding: 12px 10px;">Quincena Asignada</th>
+                        <th style="padding: 12px 10px;">Cobertura</th>
+                        <th style="padding: 12px 10px;">Seguro y KM</th>
                         <th style="padding: 12px 10px;">Estado</th>
+                        <th style="padding: 12px 10px;">Comisión</th>
                         <th style="padding: 12px 10px;">Auditoría</th>
                     </tr>
                     </thead>
@@ -213,52 +354,120 @@ function cargarTablaPagos() {
 
         lista.forEach((exp, index) => {
             const folioPersonal = exp.AjusteID || (index + 1);
-
-            const partesFecha = exp.FechaOcurrencia.split('T')[0].split('-');
-            const fechaMx = `${partesFecha[2]}/${partesFecha[1]}/${partesFecha[0]}`;
-
-            const etiquetaQuincena = obtenerNombreQuincena(exp.FechaOcurrencia);
+            const fechaMx = exp.FechaOcurrencia.split('T')[0].split('-').reverse().join('/');
             let colorEstado = exp.Estado === 'Concluido' ? '#2ecc71' : (exp.Estado === 'En Análisis' ? '#f39c12' : '#3498db');
+
+            const pagoSiniestro = calcularPagoSiniestro(exp);
+            const txtPago = exp.Estado === 'Concluido'
+                ? `<strong style="color: #2ecc71;">${fmtMXN(pagoSiniestro)}</strong>`
+                : `<span style="color: var(--text-muted); font-size: 0.85em;">Pendiente</span>`;
+
+            const txtKm = parseFloat(exp.Kilometros) > 0 ? `(${exp.Kilometros} km)` : '';
 
             htmlTabla += `
                 <tr style="border-bottom: 1px solid var(--border-color); transition: background 0.3s;">
-                    <td style="padding: 12px 10px; font-weight: bold;">SIN-${folioPersonal.toString().padStart(3, '0')}</td>
+                    <td style="padding: 12px 10px; font-weight: bold;">
+                        SIN-${folioPersonal.toString().padStart(3, '0')}
+                        <div style="font-size: 0.75em; color: var(--text-muted); font-weight: normal;">${fechaMx}</div>
+                    </td>
                     <td style="padding: 12px 10px;">${exp.Lugar || 'N/A'}</td>
-                    <td style="padding: 12px 10px;">${exp.Seguro || 'N/A'}</td>
-                    <td style="padding: 12px 10px; color: var(--text-muted);">${fechaMx}</td>
-                    <td style="padding: 12px 10px; color: var(--text-muted); font-size: 0.8em; font-style: italic;">${etiquetaQuincena}</td>
+                    <td style="padding: 12px 10px;">${exp.TipoCobertura || 'Local'}</td>
+                    <td style="padding: 12px 10px;">${exp.Seguro || 'N/A'} <span style="color: var(--primary-color); font-weight: bold;">${txtKm}</span></td>
                     <td style="padding: 12px 10px;">
                         <span style="background-color: ${colorEstado}20; color: ${colorEstado}; padding: 3px 10px; border-radius: 12px; font-size: 0.85em; font-weight: bold;">
                             ${exp.Estado}
                         </span>
                     </td>
+                    <td style="padding: 12px 10px;">${txtPago}</td>
                     <td style="padding: 12px 10px;">
                         <button onclick="abrirModalPagos(${exp.AjusteID}, ${folioPersonal})" style="background: transparent; color: var(--primary-color); border: 1px solid var(--primary-color); padding: 6px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.85em;">
-                            👁️ Ver Documentos
+                            👁️ Ver Docs
                         </button>
                     </td>
                 </tr>
             `;
         });
-
         htmlTabla += `</tbody></table></div>`;
         contenedor.innerHTML += htmlTabla;
     }
 }
 
 // ==========================================
-// 3. MODAL DE SOLO LECTURA (VERTICAL ORIGINAL)
+// LÓGICA DEL MODAL PARA ASIGNAR SUELDO O TARIFAS
+// ==========================================
+function abrirModalNomina(usuarioId) {
+    const u = baseUsuarios.find(user => user.UsuarioID === usuarioId);
+    if (!u) return;
+
+    document.getElementById('nominaUsuarioID').value = u.UsuarioID;
+    document.getElementById('nominaRolEmpleado').value = u.Rol;
+    document.getElementById('nominaNombreEmpleado').innerText = u.Nombre;
+    document.getElementById('nominaPuesto').value = u.Puesto || u.Rol || '';
+    document.getElementById('nominaCiudad').value = u.Ciudad || 'MÉRIDA';
+
+    document.getElementById('nominaSueldoMensual').value = parseFloat(u.SueldoMensual) || 0;
+    document.getElementById('nominaCostoLocal').value = parseFloat(u.CostoLocal) || 230;
+    document.getElementById('nominaCostoForaneo').value = parseFloat(u.CostoForaneo) || 230;
+    document.getElementById('nominaCostoKm').value = parseFloat(u.CostoKm) || 0;
+    document.getElementById('nominaCostoKmInbursa').value = parseFloat(u.CostoKmInbursa) || 0;
+
+    if (u.Rol === 'Ajustador') {
+        document.getElementById('bloqueCamposFijo').style.display = 'none';
+        document.getElementById('bloqueCamposAjustador').style.display = 'flex';
+    } else {
+        document.getElementById('bloqueCamposFijo').style.display = 'flex';
+        document.getElementById('bloqueCamposAjustador').style.display = 'none';
+    }
+
+    document.getElementById('modalEditarNomina').style.display = 'flex';
+}
+
+function cerrarModalNomina() {
+    document.getElementById('modalEditarNomina').style.display = 'none';
+}
+
+const formEditarNomina = document.getElementById('formEditarNomina');
+if (formEditarNomina) {
+    formEditarNomina.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('nominaUsuarioID').value;
+
+        const payload = {
+            puesto: document.getElementById('nominaPuesto').value.trim(),
+            ciudad: document.getElementById('nominaCiudad').value.trim(),
+            sueldoMensual: document.getElementById('nominaSueldoMensual').value,
+            costoLocal: document.getElementById('nominaCostoLocal').value,
+            costoForaneo: document.getElementById('nominaCostoForaneo').value,
+            costoKm: document.getElementById('nominaCostoKm').value,
+            costoKmInbursa: document.getElementById('nominaCostoKmInbursa').value
+        };
+
+        try {
+            const res = await fetch(`http://localhost:3000/api/usuarios/${id}/nomina`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                mostrarToast("✅ Sueldo y tarifas actualizados en la base de datos.", "success");
+                cerrarModalNomina();
+                descargarDatosDesdeBD();
+            } else {
+                mostrarToast("❌ Error al guardar cambios de nómina.", "error");
+            }
+        } catch (error) {
+            mostrarToast("❌ Error de conexión con el servidor.", "error");
+        }
+    });
+}
+
+// ==========================================
+// MODAL DE SOLO LECTURA DE EXPEDIENTES
 // ==========================================
 async function abrirModalPagos(ajusteId, folioPersonal) {
     const modal = document.getElementById('modalPagos');
     const modalContenido = document.getElementById('modalPagosContenido');
-
-    // Restaurar ancho original
-    const tarjetaModal = modal.querySelector('.card');
-    if (tarjetaModal) {
-        tarjetaModal.style.width = '550px';
-        tarjetaModal.style.maxWidth = '90%';
-    }
 
     document.getElementById('modalPagosExpId').innerText = `SIN-${folioPersonal.toString().padStart(3, '0')}`;
     modal.style.display = 'flex';
@@ -274,41 +483,35 @@ async function abrirModalPagos(ajusteId, folioPersonal) {
             const info = await resInfo.json();
             const esConcluido = (info.estado === 'Concluido');
 
-            let tarifaIndividual = obtenerTarifa(info.lugar);
-            let comisionFmt = "$0.00 (Pendiente)";
-            if (esConcluido) {
-                comisionFmt = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(tarifaIndividual);
-            }
+            const mockExp = {
+                AjustadorID: info.ajustadorId,
+                AjustadorNombre: info.ajustadorNombre,
+                TipoCobertura: info.tipoCobertura || 'Local',
+                Kilometros: info.kilometros || 0,
+                Seguro: info.seguro || '',
+                CostoLocal: info.costoLocal,
+                CostoForaneo: info.costoForaneo,
+                CostoKm: info.costoKm,
+                CostoKmInbursa: info.costoKmInbursa
+            };
+
+            const tarifaIndividual = calcularPagoSiniestro(mockExp);
+            const comisionFmt = esConcluido ? fmtMXN(tarifaIndividual) : "$0.00 (Pendiente)";
 
             htmlContenido += `
                 <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; background: var(--panel-bg); padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid var(--border-color);">
                     <div><span style="font-size: 0.8em; color: var(--text-muted);">Lugar (Municipio, Estado)</span><br><strong style="color: var(--text-color);">${info.lugar || 'N/A'}</strong></div>
                     <div><span style="font-size: 0.8em; color: var(--text-muted);">Tipo de Seguro</span><br><strong style="color: var(--text-color);">${info.seguro || 'N/A'}</strong></div>
-                    <div><span style="font-size: 0.8em; color: var(--text-muted);">Quincena Contable</span><br><strong style="color: var(--text-color);">${obtenerNombreQuincena(info.fechaOcurrencia)}</strong></div>
-                    <div><span style="font-size: 0.8em; color: var(--text-muted);">Kilometraje</span><br><strong style="color: var(--text-color);">${info.kilometros ? info.kilometros + ' km' : 'N/A'}</strong></div>
+                    <div><span style="font-size: 0.8em; color: var(--text-muted);">Cobertura / KM</span><br><strong style="color: var(--text-color);">${info.tipoCobertura || 'Local'} - ${info.kilometros ? info.kilometros + ' km' : '0 km'}</strong></div>
+                    <div><span style="font-size: 0.8em; color: var(--text-muted);">Ajustador</span><br><strong style="color: var(--text-color);">${info.ajustadorNombre || 'Sin asignar'}</strong></div>
                 </div>
 
                 <div style="background: var(--bg-color); padding: 10px 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid ${esConcluido ? '#2ecc71' : 'var(--border-color)'}; display: flex; justify-content: space-between; align-items: center;">
                     <div>
-                        <span style="font-size: 0.85em; font-weight: bold; color: var(--text-color);">💰 Pago calculado por este siniestro:</span><br>
-                        <small style="color: var(--text-muted);">${esConcluido ? `(Tarifa de tabulador: $${tarifaIndividual})` : 'Aún no se ha concluido el caso'}</small>
+                        <span style="font-size: 0.85em; font-weight: bold; color: var(--text-color);">💰 Comisión calculada:</span><br>
+                        <small style="color: var(--text-muted);">${esConcluido ? `(Según tarifas en BD + KM)` : 'Aún no se ha concluido el caso'}</small>
                     </div>
                     <strong style="font-size: 1.1em; color: ${esConcluido ? '#2ecc71' : 'var(--text-muted)'};">${comisionFmt}</strong>
-                </div>
-
-                <div style="background: var(--bg-color); padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid var(--border-color);">
-                    <p style="margin: 0 0 5px 0; font-size: 0.85em; font-weight: bold;">Historial de Reportes:</p>
-                    <div style="background: var(--panel-bg); padding: 10px; border-radius: 5px; max-height: 100px; overflow-y: auto; border: 1px solid var(--border-color);">
-                        <p style="margin: 0; font-size: 0.9em; color: var(--text-muted); font-style: italic; white-space: pre-wrap;">"Ajustador: ${info.relatoria || 'Sin relatoría'}"</p>
-                        ${info.respuestaAnalista ? `
-                            <hr style="border: 0; border-top: 1px dashed var(--border-color); margin: 10px 0;">
-                            <p style="margin: 0; font-size: 0.9em; color: var(--text-color); white-space: pre-wrap;">Analista: ${info.respuestaAnalista}</p>
-                        ` : ''}
-                    </div>
-
-                    <div style="background-color: #3498db20; border-left: 4px solid #3498db; padding: 10px; border-radius: 4px; margin-top: 15px;">
-                        <p style="margin: 0; font-size: 0.85em; color: #3498db; font-weight: bold;">👁️ El caso está <strong>${info.estado}</strong>. Modo Consulta activado.</p>
-                    </div>
                 </div>
                 <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 15px 0;">
                 <h4 style="margin: 0 0 10px 0; color: var(--text-color);">Documentación a Auditar</h4>
@@ -319,7 +522,6 @@ async function abrirModalPagos(ajusteId, folioPersonal) {
             const datosDocs = await resDocs.json();
             let cantArchivos = 0;
 
-            // 1. Mostrar documentos oficiales (DOA, ORD, PM)
             ['DOA', 'ORD', 'PM'].forEach(tipo => {
                 const doc = datosDocs.documentos.find(d => d.TipoDocumento === tipo);
                 if (doc) {
@@ -339,7 +541,6 @@ async function abrirModalPagos(ajusteId, folioPersonal) {
                 }
             });
 
-            // 2. Extraer y mostrar las Fotografías (Todo lo que no sea DOA, ORD, PM)
             const fotos = datosDocs.documentos.filter(d => !['DOA', 'ORD', 'PM'].includes(d.TipoDocumento) && d.RutaArchivo !== 'NO_REQUERIDO');
 
             if (fotos.length > 0) {
@@ -351,34 +552,27 @@ async function abrirModalPagos(ajusteId, folioPersonal) {
                 `;
 
                 fotos.forEach(foto => {
-                    const urlCompleta = `http://localhost:3000/${foto.RutaArchivo.replace(/\\/g, '/')}`;
+                    const rutaWeb = foto.RutaArchivo.replace(/\\/g, '/');
+                    const urlCompleta = `http://localhost:3000/${rutaWeb}`;
+                    const dispFoto = (foto.Dispositivo && foto.Dispositivo !== 'Sin datos EXIF') ? foto.Dispositivo : 'Sin EXIF';
+
                     htmlContenido += `
                         <a href="${urlCompleta}" target="_blank" style="position: relative; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color); aspect-ratio: 16/9; background: #000; display: block; text-decoration: none;">
-                            <img src="${urlCompleta}" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.85; transition: 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.85'">
+                            <img src="${urlCompleta}" style="width: 100%; height: 100%; object-fit: cover;">
                             <div style="position: absolute; bottom: 0; width: 100%; background: rgba(0,0,0,0.75); color: white; font-size: 0.7em; padding: 4px; text-align: center; font-weight: bold;">
-                                ${foto.TipoDocumento}
+                                ${foto.TipoDocumento} (${dispFoto})
                             </div>
                         </a>
                     `;
                 });
 
-                htmlContenido += `
-                    </div>
-                    <div style="background-color: rgba(46, 204, 113, 0.1); border: 1px solid #2ecc71; padding: 10px; border-radius: 6px; display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
-                        <span style="font-size: 1.5em;">🛡️</span>
-                        <div>
-                            <strong style="font-size: 0.8em; color: #2ecc71; display: block; margin-bottom: 2px;">Metadatos EXIF Verificados</strong>
-                            <span style="font-size: 0.75em; color: var(--text-color);">Dispositivo de captura: Apple iPhone 16 Pro Max</span>
-                        </div>
-                    </div>
-                `;
+                htmlContenido += `</div>`;
             }
 
-            // 3. Botón de descarga masiva
             if (cantArchivos > 0) {
                 htmlContenido += `
                     <div style="display: flex; justify-content: center; margin-top: 15px;">
-                        <button onclick="descargarArchivosMasivo(${ajusteId})" style="background-color: transparent; color: #3498db; border: 2px solid #3498db; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                        <button onclick="descargarArchivosMasivo(${ajusteId})" style="background-color: transparent; color: #3498db; border: 2px solid #3498db; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%;">
                             🗃️ Descargar Todos los Archivos (${cantArchivos})
                         </button>
                     </div>
@@ -399,7 +593,7 @@ function filtrarCajasVisuales() {
     const contenedor = document.getElementById("contenedorTablasPagos");
     if (!contenedor) return;
 
-    const bloques = contenedor.getElementsByClassName("bloque-ajustador");
+    const bloques = contenedor.getElementsByClassName("detalle-expedientes-ajustador");
 
     for (let b = 0; b < bloques.length; b++) {
         const tabla = bloques[b].getElementsByTagName("table")[0];
@@ -408,7 +602,7 @@ function filtrarCajasVisuales() {
 
         for (let i = 1; i < filas.length; i++) {
             const textoFila = filas[i].textContent || filas[i].innerText;
-            const columnaEstado = filas[i].getElementsByTagName("span")[0];
+            const columnaEstado = filas[i].getElementsByTagName("span")[1] || filas[i].getElementsByTagName("span")[0];
             const textoEstado = columnaEstado ? columnaEstado.textContent.toLowerCase() : "";
 
             if (textoFila.toLowerCase().indexOf(textoBuscador) > -1 && (estadoSeleccionado === "" || textoEstado.indexOf(estadoSeleccionado) > -1)) {
@@ -425,29 +619,36 @@ function filtrarCajasVisuales() {
 async function exportarExcel() {
     try {
         mostrarToast("⏳ Descargando reporte global...", "info");
-        const res = await fetch('http://localhost:3000/api/exportar-excel');
+        const mes = document.getElementById('filtroMes').value;
+        const quincena = document.getElementById('filtroQuincena').value;
+        const res = await fetch(`http://localhost:3000/api/exportar-excel?mes=${mes}&quincena=${quincena}`);
+
         if (res.ok) {
             const blob = await res.blob();
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = `Reporte_Pagos_ASPV_${new Date().toLocaleDateString('es-MX')}.xlsx`;
+            a.download = `Reporte_Nomina_ASPV_${new Date().toLocaleDateString('es-MX')}.xlsx`;
             document.body.appendChild(a);
             a.click();
             a.remove();
             window.URL.revokeObjectURL(url);
-            mostrarToast("✅ Excel descargado.", "success");
+            mostrarToast("✅ Excel descargado exitosamente.", "success");
+        } else {
+            mostrarToast("❌ Error en el servidor al generar Excel.", "error");
         }
-    } catch (error) { mostrarToast("❌ Error al descargar.", "error"); }
+    } catch (error) {
+        mostrarToast("❌ Error al descargar.", "error");
+    }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('nombreUsuarioUI').innerText = `Hola, ${nombreUsuario}`;
-    descargarExpedientesDesdeBD();
+    descargarDatosDesdeBD();
 });
 
 // ==========================================
-// PERFIL DE USUARIO (UNIVERSAL)
+// PERFIL DE USUARIO Y DESCARGAS
 // ==========================================
 const miUsuarioIdGbl = localStorage.getItem('aspv_id');
 
@@ -457,19 +658,13 @@ async function cargarDatosPerfil() {
         const res = await fetch(`http://localhost:3000/api/perfil/${miUsuarioIdGbl}`);
         if (res.ok) {
             const perfil = await res.json();
-
-            // Actualizar la foto en el header (si existe)
             const avatarUrl = perfil.FotoPerfil ? `http://localhost:3000/${perfil.FotoPerfil}` : 'imagenes/LogoASPV.jpg';
             const avatarHeader = document.getElementById('avatarHeader');
             if (avatarHeader) avatarHeader.src = avatarUrl;
-
-            // Llenar el modal (si existe en el DOM actual)
             const previewFoto = document.getElementById('previewFotoPerfil');
             if (previewFoto) previewFoto.src = avatarUrl;
-
             const correoInput = document.getElementById('correoPerfil');
             if (correoInput) correoInput.value = perfil.Correo;
-
             const telInput = document.getElementById('telefonoPerfil');
             if (telInput) telInput.value = perfil.Telefono || '';
         }
@@ -486,7 +681,6 @@ function cerrarModalPerfil() {
     if (modal) modal.style.display = 'none';
 }
 
-// Vista previa de la foto
 const inputFoto = document.getElementById('inputFotoPerfil');
 if (inputFoto) {
     inputFoto.addEventListener('change', function(e) {
@@ -498,83 +692,53 @@ if (inputFoto) {
     });
 }
 
-// Guardar en Base de Datos
 const formPerfil = document.getElementById('formPerfil');
 if (formPerfil) {
     formPerfil.addEventListener('submit', async (e) => {
         e.preventDefault();
         mostrarToast("Guardando perfil...", "info");
-
         const formData = new FormData();
         formData.append('telefono', document.getElementById('telefonoPerfil').value.trim());
-
         const foto = document.getElementById('inputFotoPerfil').files[0];
         if (foto) formData.append('fotoPerfil', foto);
-
         try {
-            const res = await fetch(`http://localhost:3000/api/perfil/${miUsuarioIdGbl}`, {
-                method: 'POST',
-                body: formData
-            });
-
+            const res = await fetch(`http://localhost:3000/api/perfil/${miUsuarioIdGbl}`, { method: 'POST', body: formData });
             if (res.ok) {
                 mostrarToast("✅ Perfil actualizado.", "success");
-                cargarDatosPerfil(); // Recarga la foto
+                cargarDatosPerfil();
                 cerrarModalPerfil();
-            } else {
-                mostrarToast("❌ Error al guardar perfil.", "error");
-            }
-        } catch (error) {
-            mostrarToast("❌ Error de red.", "error");
-        }
+            } else { mostrarToast("❌ Error al guardar perfil.", "error"); }
+        } catch (error) { mostrarToast("❌ Error de red.", "error"); }
     });
 }
 
-// Llamar automáticamente al entrar
-document.addEventListener("DOMContentLoaded", () => {
-    cargarDatosPerfil();
-});
+document.addEventListener("DOMContentLoaded", () => { cargarDatosPerfil(); });
 
-// ==========================================
-// FUNCIÓN: DESCARGA MASIVA (ESTILO ANALISTA CON BLOB)
-// ==========================================
 async function descargarArchivosMasivo(ajusteId) {
     try {
         const resDocs = await fetch(`http://localhost:3000/api/documentos/${ajusteId}`);
         if (!resDocs.ok) return;
-
         const data = await resDocs.json();
         const archivosValidos = data.documentos.filter(d => d.RutaArchivo !== 'NO_REQUERIDO');
-
         if (archivosValidos.length === 0) return mostrarToast("⚠️ No hay archivos para descargar.", "warning");
-
         mostrarToast(`⏳ Descargando ${archivosValidos.length} archivo(s)...`, "info");
-
         for (let doc of archivosValidos) {
             try {
                 const url = `http://localhost:3000/${doc.RutaArchivo.replace(/\\/g, '/')}`;
                 const res = await fetch(url);
                 if (!res.ok) throw new Error("No se pudo obtener");
-
                 const blob = await res.blob();
                 const blobUrl = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = blobUrl;
                 a.download = doc.RutaArchivo.split('\\').pop().split('/').pop() || 'documento_aspv';
-
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
                 window.URL.revokeObjectURL(blobUrl);
-            } catch (e) {
-                console.error("Error descargando:", doc.RutaArchivo);
-            }
-            // Pausa de medio segundo para que Chrome no lo bloquee como "Spam"
+            } catch (e) { console.error("Error descargando:", doc.RutaArchivo); }
             await new Promise(r => setTimeout(r, 500));
         }
         mostrarToast("✅ Todas las descargas han finalizado.", "success");
-
-    } catch (error) {
-        mostrarToast("❌ Error al conectar con los archivos.", "error");
-    }
+    } catch (error) { mostrarToast("❌ Error al conectar con los archivos.", "error"); }
 }

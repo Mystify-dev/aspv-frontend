@@ -5,12 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ASPV - Gerencia y Usuarios</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Librería Chart.js para la gráfica de Siniestros por Período -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
-<!-- Menú Lateral -->
+<!-- Menú Lateral Unificado -->
 <aside class="sidebar">
     <img src="imagenes/LogoASPV.jpg" alt="Logo ASPV" style="width: 110px; margin-bottom: 15px; margin-top: 5px; border-radius: 12px;">
     <p style="color: var(--text-muted); font-size: 0.9em; margin-bottom: 40px;">GESTIÓN DE SINIESTROS</p>
@@ -18,41 +16,38 @@
     <nav style="display: flex; flex-direction: column; gap: 15px;" id="navMenu">
         <strong>Menú Principal</strong>
 
-        <!-- Enlaces ocultos por defecto -->
-        <a href="admin.html" id="btnAdmin" style="display: none; color: var(--text-color); text-decoration: none;">⚙️ Gerencia y Usuarios</a>
         <a href="resumen.html" id="btnAnalista" style="display: none; color: var(--text-color); text-decoration: none;">📊 Panel de Análisis</a>
+        <a href="pagos.html" id="btnPagos" style="display: none; color: var(--text-color); text-decoration: none;">💰 Panel de Pagos</a>
         <a href="index.html" id="btnAjustador" style="display: none; color: var(--text-color); text-decoration: none;">📁 Mis Expedientes</a>
-
-        <!-- NUEVO: Enlace al Muro Global -->
         <a href="muro.html" id="btnMuro" style="display: none; color: var(--text-color); text-decoration: none;">🌐 Muro Global</a>
-
         <a href="calendario.html" id="btnCalendario" style="display: none; color: var(--text-color); text-decoration: none;">📅 Calendario</a>
+        <a href="admin.html" id="btnAdmin" style="display: none; color: var(--text-color); text-decoration: none;">⚙️ Gerencia y Usuarios</a>
 
-        <!-- Script inteligente que muestra solo lo permitido según el rol -->
         <script>
-            const rolActual = localStorage.getItem('aspv_rol');
+            const mostrarMenu = (id) => {
+                const elemento = document.getElementById(id);
+                if (elemento) elemento.style.display = 'block';
+            };
 
-            // TODOS los roles pueden ver el muro
-            if(document.getElementById('btnMuro')) {
-                document.getElementById('btnMuro').style.display = 'block';
-            }
+            const rolActual = localStorage.getItem('aspv_rol');
+            mostrarMenu('btnMuro');
 
             if (rolActual === 'Admin') {
-                document.getElementById('btnAdmin').style.display = 'block';
-                document.getElementById('btnAnalista').style.display = 'block';
-                document.getElementById('btnCalendario').style.display = 'block';
-            } else if (rolActual === 'Analista' || rolActual === 'Analista de Pagos') {
-                document.getElementById('btnAnalista').style.display = 'block';
-                document.getElementById('btnCalendario').style.display = 'block';
-                if (rolActual === 'Analista de Pagos') {
-                    document.getElementById('btnAnalista').innerText = '💰 Panel de Pagos';
-                }
+                mostrarMenu('btnAdmin');
+                mostrarMenu('btnAnalista');
+                mostrarMenu('btnPagos');
+                mostrarMenu('btnCalendario');
+            } else if (rolActual === 'Analista') {
+                mostrarMenu('btnAnalista');
+                mostrarMenu('btnCalendario');
+            } else if (rolActual === 'Analista de Pagos') {
+                mostrarMenu('btnPagos');
+                mostrarMenu('btnCalendario');
             } else if (rolActual === 'Ajustador') {
-                document.getElementById('btnAjustador').style.display = 'block';
-                document.getElementById('btnCalendario').style.display = 'block';
+                mostrarMenu('btnAjustador');
+                mostrarMenu('btnCalendario');
             }
 
-            // Resalta en azul la página actual automáticamente
             const urlActual = window.location.pathname.split('/').pop() || 'index.html';
             document.querySelectorAll('#navMenu a').forEach(enlace => {
                 if (enlace.getAttribute('href') === urlActual) {
@@ -62,7 +57,6 @@
             });
         </script>
 
-        <!-- Controles de Accesibilidad -->
         <div style="margin-top: 40px;">
             <p style="font-size: 0.8em; color: var(--text-muted); margin-bottom: 8px;">Apariencia:</p>
             <div style="display: flex; gap: 5px;">
@@ -75,15 +69,11 @@
     </nav>
 </aside>
 
-<!-- Contenido Principal -->
 <main class="main-content">
     <header class="topbar">
         <div style="flex: 1;"></div>
 
-        <!-- Campana y Panel de Notificaciones Flotante -->
         <div style="display: flex; align-items: center; gap: 20px; position: relative;">
-
-            <!-- Ícono de Mensajes / Chat (Redirige a chat.html) -->
             <div onclick="window.location.href='chat.html'" style="position: relative; cursor: pointer; display: flex; align-items: center;" title="Abrir Mensajes Operativos">
                 <span style="font-size: 1.5em;">💬</span>
                 <span id="mensaje-badge" style="display: none; position: absolute; top: -5px; right: -8px; background: #e74c3c; color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.7em; font-weight: bold; border: 2px solid var(--panel-bg);">0</span>
@@ -94,23 +84,19 @@
                 <span id="badgeNotificaciones" style="display: none; position: absolute; top: -5px; right: -8px; background: #e74c3c; color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.7em; font-weight: bold; border: 2px solid var(--panel-bg);">0</span>
             </div>
 
-            <!-- Panel Flotante Oculto -->
             <div id="panelNotificaciones" style="display: none; position: absolute; top: 45px; right: 120px; width: 350px; background-color: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 8px 16px rgba(0,0,0,0.4); z-index: 1000; overflow: hidden;">
                 <div style="padding: 15px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background-color: var(--bg-color);">
                     <h3 style="margin: 0; font-size: 1.1em; color: var(--text-color);">Notificaciones</h3>
                     <button id="marcarLeidasBtn" style="background: transparent; color: var(--primary-color); border: none; cursor: pointer; font-size: 0.85em; font-weight: bold;">Marcar leídas</button>
                 </div>
-
                 <ul id="listaNotificacionesUI" style="list-style: none; margin: 0; padding: 0; max-height: 300px; overflow-y: auto;">
                     <li style="padding: 15px; text-align: center; color: var(--text-muted); font-size: 0.9em;">No tienes notificaciones nuevas</li>
                 </ul>
-
                 <div style="padding: 10px; text-align: center; border-top: 1px solid var(--border-color); background-color: var(--bg-color);">
                     <span style="color: var(--text-muted); font-size: 0.85em;">ASPV Sistema de Alertas</span>
                 </div>
             </div>
 
-            <!-- PERFIL DE USUARIO DINÁMICO CON BOTÓN DE SALIR -->
             <div class="user-profile" style="display: flex; align-items: center; gap: 15px;">
                 <img id="avatarHeader" src="imagenes/LogoASPV.jpg" alt="Avatar" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary-color);">
                 <strong id="nombreUsuarioUI">Hola, Cargando...</strong>
@@ -121,97 +107,99 @@
     </header>
 
     <div class="dashboard">
-        <h1 style="margin-top: 0;">Monitoreo y Análisis Institucional</h1>
-        <p style="color: var(--text-muted);">Monitorea y analiza los siniestros, asignaciones y seguimiento.</p>
+        <h1 style="margin-top: 0;">Gerencia y Recursos Humanos</h1>
+        <p style="color: var(--text-muted);">Administra la plantilla de personal, altas, bajas y sus accesos al sistema.</p>
 
-        <!-- Tarjetas Superiores (4 KPIs de Gerencia) -->
+        <!-- NUEVOS KPIs ENFOCADOS 100% EN PERSONAL -->
         <div class="kpi-grid">
             <div class="card">
-                <h4 style="margin: 0; color: var(--text-muted);">Total de Siniestros</h4>
-                <h2 id="kpiMes" style="margin: 10px 0;">0</h2>
-                <p style="margin: 0; font-size: 0.85em; color: var(--text-muted);">En el período</p>
+                <h4 style="margin: 0; color: var(--text-muted);">Total en Plantilla</h4>
+                <h2 id="kpiTotal" style="margin: 10px 0;">0</h2>
+                <p style="margin: 0; font-size: 0.85em; color: var(--text-muted);">Usuarios registrados</p>
             </div>
-
             <div class="card">
-                <h4 style="margin: 0; color: var(--text-muted);">Promedio por Persona</h4>
-                <h2 style="margin: 10px 0;">4.2</h2>
-                <p style="margin: 0; font-size: 0.85em; color: var(--text-muted);">Siniestros / persona</p>
+                <h4 style="margin: 0; color: var(--text-muted);">Ajustadores Activos</h4>
+                <h2 id="kpiAjustadores" style="margin: 10px 0;">0</h2>
+                <p style="margin: 0; font-size: 0.85em; color: var(--text-muted);">Personal de campo</p>
             </div>
-
             <div class="card">
-                <h4 style="margin: 0; color: var(--text-muted);">Siniestros Hoy</h4>
-                <h2 id="kpiDia" style="margin: 10px 0; color: var(--primary-color);">0</h2>
-                <p style="margin: 0; font-size: 0.85em; color: var(--text-muted);">Casos recientes</p>
+                <h4 style="margin: 0; color: var(--text-muted);">Administrativos</h4>
+                <h2 id="kpiAdmin" style="margin: 10px 0; color: var(--primary-color);">0</h2>
+                <p style="margin: 0; font-size: 0.85em; color: var(--text-muted);">Oficina y Gerencia</p>
             </div>
-
             <div class="card">
-                <h4 style="margin: 0; color: var(--text-muted);">Personal Activo</h4>
-                <h2 id="kpiPersonal" style="margin: 10px 0; color: #2ecc71;">0</h2>
-                <p style="margin: 0; font-size: 0.85em; color: var(--text-muted);">En sistema</p>
+                <h4 style="margin: 0; color: var(--text-muted);">En Línea Ahora</h4>
+                <h2 id="kpiOnline" style="margin: 10px 0; color: #2ecc71;">0</h2>
+                <p style="margin: 0; font-size: 0.85em; color: var(--text-muted);">Conectados al sistema</p>
             </div>
         </div>
 
-        <!-- Sección Intermedia: Gráfica y Gestión de Personal -->
-        <div class="grid-dos-columnas">
-            <div class="card">
-                <h3 style="margin-top: 0;">Siniestros por Período</h3>
-                <canvas id="graficaPeriodo" height="120"></canvas>
-            </div>
-
-            <div class="card">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h3 style="margin: 0;">Gestión de Personal</h3>
-                    <button onclick="mostrarFormularioAlta()" style="background-color: var(--primary-color); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.85em;">
-                        + Nuevo
-                    </button>
-                </div>
-
-                <!-- Formulario Oculto para Dar de Alta Usuarios -->
-                <form id="formNuevoUsuario" style="display: none; flex-direction: column; gap: 10px; margin-bottom: 15px; padding: 12px; background: var(--panel-bg); border-radius: 8px; border: 1px solid var(--border-color);">
-                    <input type="text" id="nuevoNombre" placeholder="Nombre completo" required style="padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color);">
-                    <input type="email" id="nuevoCorreo" placeholder="Correo electrónico" required style="padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color);">
-                    <input type="password" id="nuevoPassword" placeholder="Contraseña" required style="padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color);">
-
-                    <select id="nuevoRol" required style="padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); font-weight: bold;">
-                        <option value="Ajustador">Ajustador</option>
-                        <option value="Analista">Analista de Siniestros</option>
-                        <option value="Analista de Pagos">Analista de Pagos</option>
-                        <option value="Admin">Administrador</option>
-                    </select>
-
-                    <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 5px;">
-                        <button type="button" onclick="ocultarFormularioAlta()" style="background: transparent; color: var(--text-muted); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 5px; cursor: pointer;">Cancelar</button>
-                        <button type="submit" style="background: #2ecc71; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-weight: bold;">Guardar</button>
-                    </div>
-                </form>
-
-                <!-- Lista de Usuarios Registrados -->
-                <ul id="listaPersonal" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; max-height: 220px; overflow-y: auto;">
-                    <!-- Inyectado por admin.js -->
-                </ul>
-            </div>
-        </div>
-
-        <!-- Tabla Inferior: Registro Detallado de Siniestros (Solo visualización) -->
+        <!-- DIRECTORIO DE PERSONAL (ÚNICO MÓDULO ANCHO) -->
         <div class="card" style="margin-top: 20px;">
             <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px;">
                 <div>
-                    <h3 style="margin: 0;">Registro Detallado de Siniestros</h3>
-                    <p style="color: var(--text-muted); font-size: 0.9em; margin-top: 5px; margin-bottom: 0;">Todos los siniestros registrados.</p>
+                    <h3 style="margin: 0;">Directorio de Personal y Accesos</h3>
+                    <p style="color: var(--text-muted); font-size: 0.9em; margin-top: 5px; margin-bottom: 0;">Listado completo de todos los usuarios registrados. Si eliminas a alguien aquí, se dará de baja del panel de nómina.</p>
                 </div>
-                <button onclick="exportarExcel()" style="background-color: #2ecc71; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 8px; font-size: 0.9em; transition: 0.3s;">
-                    📊 Exportar a Excel
+                <button onclick="mostrarFormularioAlta()" style="background-color: var(--primary-color); color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 0.9em;">
+                    + Nuevo Empleado
                 </button>
             </div>
 
-            <div id="contenedorTablasSiniestros" style="overflow-x: auto; margin-top: 15px;">
-                <!-- JavaScript inyectará las tablas separadas por ajustador (sin columna de acciones) -->
+            <!-- FORMULARIO PARA DAR DE ALTA EMPLEADOS (OCULTO POR DEFECTO) -->
+            <form id="formNuevoUsuario" style="display: none; flex-direction: column; gap: 10px; margin-bottom: 20px; padding: 15px; background: var(--bg-color); border-radius: 8px; border: 1px solid var(--border-color);">
+                <h4 style="margin: 0 0 10px 0; color: var(--primary-color);">Registrar Nuevo Empleado</h4>
+
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="nuevoNombre" placeholder="Nombre completo (Ej. JOSE LLERGOS TEJERO)" required style="flex: 2; padding: 10px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--panel-bg); color: var(--text-color);">
+                    <input type="text" id="nuevoPuesto" placeholder="Puesto (Ej. GERENTE GENERAL, AJUSTADOR)" required style="flex: 1; padding: 10px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--panel-bg); color: var(--text-color);">
+                    <input type="text" id="nuevaCiudad" placeholder="Ciudad (Ej. MERIDA, CARMEN)" required style="flex: 1; padding: 10px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--panel-bg); color: var(--text-color);">
+                </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <input type="email" id="nuevoCorreo" placeholder="Correo electrónico de acceso" required style="flex: 1; padding: 10px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--panel-bg); color: var(--text-color);">
+                    <input type="password" id="nuevoPassword" placeholder="Contraseña de acceso" required style="flex: 1; padding: 10px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--panel-bg); color: var(--text-color);">
+                    <select id="nuevoRol" required style="flex: 1.5; padding: 10px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--panel-bg); color: var(--text-color); font-weight: bold;">
+                        <option value="" disabled selected>Selecciona Permisos en el Sistema...</option>
+                        <optgroup label="Personal Operativo">
+                            <option value="Ajustador">Ajustador de Siniestros (App)</option>
+                            <option value="Analista">Analista de Siniestros (Auditoría)</option>
+                        </optgroup>
+                        <optgroup label="Personal Administrativo y Fijo">
+                            <option value="Analista de Pagos">Administración / Pagos (Acceso a Nómina)</option>
+                            <option value="Admin">Gerencia / Coordinación / Sistemas (Control Total)</option>
+                        </optgroup>
+                    </select>
+                </div>
+
+                <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 5px;">
+                    <button type="button" onclick="ocultarFormularioAlta()" style="background: transparent; color: var(--text-muted); border: 1px solid var(--border-color); padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold;">Cancelar</button>
+                    <button type="submit" style="background: #2ecc71; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold;">Guardar Empleado</button>
+                </div>
+            </form>
+
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; text-align: left; border-collapse: collapse; font-size: 0.9em; background: var(--bg-color);">
+                    <thead>
+                    <tr style="border-bottom: 2px solid var(--border-color); color: var(--text-muted); background: rgba(0,0,0,0.2);">
+                        <th style="padding: 12px 10px;">NOMBRE COMPLETO</th>
+                        <th style="padding: 12px 10px;">PUESTO</th>
+                        <th style="padding: 12px 10px;">CIUDAD</th>
+                        <th style="padding: 12px 10px;">CORREO DE ACCESO</th>
+                        <th style="padding: 12px 10px;">ROL EN SISTEMA</th>
+                        <th style="padding: 12px 10px;">ESTADO</th>
+                        <th style="padding: 12px 10px; text-align: center;">ACCIONES</th>
+                    </tr>
+                    </thead>
+                    <tbody id="tablaDirectorioPersonal">
+                    <!-- JS inyectará aquí -->
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
 </main>
 
-<!-- Lógica visual interactiva para el panel de notificaciones -->
 <script>
     document.addEventListener("DOMContentLoaded", () => {
         const campana = document.getElementById('contenedorCampana');
@@ -237,21 +225,21 @@
     });
 </script>
 
-<!-- Modal de Confirmación (Para eliminar empleados) -->
+<!-- Modal de Confirmación -->
 <div id="modalConfirmacion" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 10000; justify-content: center; align-items: center;">
     <div class="card" style="width: 400px; background: var(--panel-bg); border-radius: 12px; padding: 20px; text-align: center;">
-        <h3 style="margin-top: 0; color: #e74c3c;">⚠️ Confirmar Acción</h3>
+        <h3 style="margin-top: 0; color: #e74c3c;">⚠️ Confirmar Baja</h3>
         <p style="color: var(--text-color); font-size: 0.9em;" id="textoConfirmacion"></p>
         <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
             <button onclick="cancelarAccion()" style="background: var(--bg-color); color: var(--text-color); border: 1px solid var(--border-color); padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold;">Cancelar</button>
-            <button onclick="confirmarAccion()" style="background: #e74c3c; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold;">Sí, Confirmar</button>
+            <button onclick="confirmarAccion()" style="background: #e74c3c; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold;">Sí, Dar de baja</button>
         </div>
     </div>
 </div>
 
-<!-- NUEVO: Modal de Edición de Usuario -->
+<!-- Modal de Edición de Usuario -->
 <div id="modalEditarUsuario" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 10000; justify-content: center; align-items: center;">
-    <div class="card" style="width: 400px; background: var(--panel-bg); border-radius: 12px; padding: 20px; position: relative;">
+    <div class="card" style="width: 420px; background: var(--panel-bg); border-radius: 12px; padding: 20px; position: relative;">
         <button onclick="cerrarModalEditar()" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.2em; color: var(--text-color); cursor: pointer;">✖</button>
         <h3 style="margin-top: 0; color: var(--primary-color);">✏️ Editar Empleado</h3>
 
@@ -261,18 +249,33 @@
             <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold; margin-bottom: -5px;">Nombre Completo</label>
             <input type="text" id="editNombre" required style="padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color);">
 
+            <div style="display: flex; gap: 8px;">
+                <div style="flex: 1;">
+                    <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold;">Puesto</label>
+                    <input type="text" id="editPuesto" required style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); box-sizing: border-box; margin-top: 4px;">
+                </div>
+                <div style="flex: 1;">
+                    <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold;">Ciudad</label>
+                    <input type="text" id="editCiudad" required style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); box-sizing: border-box; margin-top: 4px;">
+                </div>
+            </div>
+
             <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold; margin-bottom: -5px;">Correo Electrónico</label>
             <input type="email" id="editCorreo" required style="padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color);">
 
-            <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold; margin-bottom: -5px;">Nueva Contraseña <span style="font-weight: normal;">(Déjalo en blanco si no quieres cambiarla)</span></label>
-            <input type="password" id="editPassword" placeholder="Solo si deseas actualizarla" style="padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color);">
+            <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold; margin-bottom: -5px;">Nueva Contraseña <span style="font-weight: normal;">(Opcional)</span></label>
+            <input type="password" id="editPassword" placeholder="Déjalo en blanco si no cambias" style="padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color);">
 
-            <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold; margin-bottom: -5px;">Rol en el Sistema</label>
+            <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold; margin-bottom: -5px;">Rol de Acceso en el Sistema</label>
             <select id="editRol" required style="padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); font-weight: bold;">
-                <option value="Ajustador">Ajustador</option>
-                <option value="Analista">Analista de Siniestros</option>
-                <option value="Analista de Pagos">Analista de Pagos</option>
-                <option value="Admin">Administrador</option>
+                <optgroup label="Personal Operativo">
+                    <option value="Ajustador">Ajustador (Comisiones)</option>
+                    <option value="Analista">Analista de Siniestros (Sueldo Fijo)</option>
+                </optgroup>
+                <optgroup label="Personal Administrativo y Fijo">
+                    <option value="Analista de Pagos">Administración / Pagos (Sueldo Fijo)</option>
+                    <option value="Admin">Gerencia / Coordinación / Sistemas (Admin Fijo)</option>
+                </optgroup>
             </select>
 
             <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px;">
@@ -283,10 +286,8 @@
     </div>
 </div>
 
-<!-- Contenedor para Notificaciones Toast -->
 <div id="toast-container"></div>
 
-<!-- MODAL DE PERFIL DE USUARIO -->
 <div id="modalPerfil" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center;">
     <div class="card" style="width: 400px; max-width: 90%; background: var(--panel-bg); border-radius: 12px; padding: 20px; position: relative; text-align: center;">
         <button onclick="cerrarModalPerfil()" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.2em; color: var(--text-color); cursor: pointer;">✖</button>
@@ -299,26 +300,20 @@
                 <img id="previewFotoPerfil" src="imagenes/LogoASPV.jpg" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary-color); margin-bottom: 10px;">
                 <input type="file" id="inputFotoPerfil" accept="image/*" style="width: 100%; font-size: 0.8em; color: var(--text-color);">
             </div>
-
             <div>
                 <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold;">Correo (No editable)</label>
                 <input type="text" id="correoPerfil" disabled style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-muted); margin-top: 5px; box-sizing: border-box; opacity: 0.7;">
             </div>
-
             <div>
                 <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold;">Teléfono Celular</label>
                 <input type="text" id="telefonoPerfil" placeholder="Ej. 999 123 4567" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); margin-top: 5px; box-sizing: border-box;">
             </div>
-
             <button type="submit" style="background-color: #2ecc71; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px;">💾 Guardar Cambios</button>
         </form>
     </div>
 </div>
 
-<!-- Cargar Socket.io para el chat PRIMERO -->
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-
-<!-- Cargar tu admin.js DESPUÉS para que ya pueda usar Socket.io -->
 <script src="admin.js"></script>
 
 </body>

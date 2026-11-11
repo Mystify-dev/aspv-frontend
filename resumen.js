@@ -296,16 +296,33 @@ async function evaluarExpediente(ajusteId, borradorTexto = '') {
                     <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 10px;">
                 `;
 
+                const dispositivosUnicos = [...new Set(
+                    fotos
+                        .map(f => f.Dispositivo)
+                        .filter(d => d && d !== 'Sin datos EXIF' && d !== 'Dispositivo no identificado')
+                )];
+                const textoResumenExif = dispositivosUnicos.length > 0
+                    ? dispositivosUnicos.join(', ')
+                    : (datosDocs.dispositivo || 'Dispositivo no identificado (Sin datos EXIF)');
+                const textoResumenEscapado = textoResumenExif.replace(/'/g, "\'");
+
                 fotos.forEach(foto => {
                     const rutaWeb = foto.RutaArchivo.replace(/\\/g, '/');
                     const urlCompleta = `http://localhost:3000/${rutaWeb}`;
-                    urlsParaDescargar.push(`'${urlCompleta}'`); // Las fotos también se irán en la descarga masiva
+                    urlsParaDescargar.push(`'${urlCompleta}'`);
+                    const dispFoto = (foto.Dispositivo && foto.Dispositivo !== 'Sin datos EXIF')
+                        ? foto.Dispositivo
+                        : 'Dispositivo no identificado (Sin datos EXIF)';
+                    const dispFotoEscapado = dispFoto.replace(/'/g, "\'");
 
                     htmlContenido += `
-                        <a href="${urlCompleta}" target="_blank" style="position: relative; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color); aspect-ratio: 16/9; background: #000; display: block; text-decoration: none;">
+                        <a href="${urlCompleta}" target="_blank"
+                           onmouseenter="const el = document.getElementById('exifDispositivoTexto'); if(el) el.textContent = '${foto.TipoDocumento}: ${dispFotoEscapado}';"
+                           onmouseleave="const el = document.getElementById('exifDispositivoTexto'); if(el) el.textContent = '${textoResumenEscapado}';"
+                           style="position: relative; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color); aspect-ratio: 16/9; background: #000; display: block; text-decoration: none;">
                             <img src="${urlCompleta}" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.85; transition: 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.85'">
                             <div style="position: absolute; bottom: 0; width: 100%; background: rgba(0,0,0,0.75); color: white; font-size: 0.7em; padding: 4px; text-align: center; font-weight: bold;">
-                                ${foto.TipoDocumento}
+                                ${foto.TipoDocumento} <span style="font-weight: normal; opacity: 0.85;">(${dispFoto})</span>
                             </div>
                         </a>
                     `;
@@ -317,7 +334,7 @@ async function evaluarExpediente(ajusteId, borradorTexto = '') {
                         <span style="font-size: 1.5em;">🛡️</span>
                         <div>
                             <strong style="font-size: 0.8em; color: #2ecc71; display: block; margin-bottom: 2px;">Metadatos EXIF Verificados</strong>
-                            <span style="font-size: 0.75em; color: var(--text-color);">Dispositivo de captura: ${resInfo.dispositivo || 'Apple iPhone 16 Pro Max'}</span>
+                            <span style="font-size: 0.75em; color: var(--text-color);">Dispositivo de captura: <span id="exifDispositivoTexto">${textoResumenExif}</span></span>
                         </div>
                     </div>
                 `;

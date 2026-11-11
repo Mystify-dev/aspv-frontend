@@ -17,6 +17,7 @@ function mostrarToast(mensaje, tipo = 'info') {
 
 const rolUsuario = localStorage.getItem('aspv_rol');
 const nombreUsuario = localStorage.getItem('aspv_nombre');
+const miUsuarioIdGbl = localStorage.getItem('aspv_id');
 
 if (!rolUsuario || (rolUsuario !== 'Admin' && rolUsuario !== 'Analista')) {
     window.location.href = 'login.html';
@@ -33,18 +34,10 @@ function cerrarSesion() {
 function aplicarPreferencias() {
     const temaGuardado = localStorage.getItem('aspv_tema');
     const textoGuardado = localStorage.getItem('aspv_texto');
-
-    if (temaGuardado === 'dark') {
-        document.documentElement.setAttribute('data-theme', 'dark');
-    } else {
-        document.documentElement.removeAttribute('data-theme');
-    }
-
-    if (textoGuardado) {
-        document.documentElement.setAttribute('data-text', textoGuardado);
-    }
+    if (temaGuardado === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+    else document.documentElement.removeAttribute('data-theme');
+    if (textoGuardado) document.documentElement.setAttribute('data-text', textoGuardado);
 }
-
 aplicarPreferencias();
 
 function cambiarTema(tema) {
@@ -56,12 +49,10 @@ function cambiarTema(tema) {
         localStorage.setItem('aspv_tema', 'light');
     }
 }
-
 function cambiarTexto(tamano) {
     document.documentElement.setAttribute('data-text', tamano);
     localStorage.setItem('aspv_texto', tamano);
 }
-
 
 async function cargarMetricas() {
     try {
@@ -74,105 +65,55 @@ async function cargarMetricas() {
     } catch (error) { console.error("Error al cargar métricas:", error); }
 }
 
-async function cargarTablaDetallada() {
-    try {
-        const res = await fetch('http://localhost:3000/api/lista-expedientes');
-        if (res.ok) {
-            const expedientes = await res.json();
-            const contenedor = document.getElementById('contenedorTablasSiniestros');
-            if(!contenedor) return;
-            contenedor.innerHTML = '';
-
-            const agrupados = expedientes.reduce((acc, exp) => {
-                const ajustador = exp.AjustadorNombre || 'Sin asignar';
-                if (!acc[ajustador]) acc[ajustador] = [];
-                acc[ajustador].push(exp);
-                return acc;
-            }, {});
-
-            for (const [ajustador, lista] of Object.entries(agrupados)) {
-                let htmlTabla = `
-                    <h4 style="margin: 25px 0 10px 0; color: var(--primary-color); border-bottom: 2px solid var(--border-color); padding-bottom: 5px;">
-                        📁 Siniestros de: ${ajustador}
-                    </h4>
-                    <table style="width: 100%; text-align: left; border-collapse: collapse; font-size: 0.9em; margin-bottom: 20px;">
-                        <thead>
-                        <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-muted);">
-                            <th style="padding: 12px 10px;">ID Siniestro</th>
-                            <th style="padding: 12px 10px;">Lugar</th>
-                            <th style="padding: 12px 10px;">Seguro</th>
-                            <th style="padding: 12px 10px;">Kilometraje</th>
-                            <th style="padding: 12px 10px;">Fecha</th>
-                            <th style="padding: 12px 10px;">Estado</th>
-                            <th style="padding: 12px 10px;">Monto</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                `;
-
-                lista.forEach((exp, index) => {
-                    const folioPersonal = exp.AjusteID || (index + 1);
-
-                    const fecha = new Date(exp.FechaOcurrencia).toLocaleDateString('es-MX');
-                    let colorEstado = exp.Estado === 'Concluido' ? '#2ecc71' : (exp.Estado === 'En Análisis' ? '#f39c12' : '#3498db');
-                    const lugar = exp.Lugar || 'N/A';
-                    const seguro = exp.Seguro || 'N/A';
-                    const kms = exp.Kilometros ? new Intl.NumberFormat('es-MX').format(exp.Kilometros) + ' km' : 'N/A';
-                    const monto = exp.Monto ? new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(exp.Monto) : '$0.00';
-
-                    htmlTabla += `
-                        <tr style="border-bottom: 1px solid var(--border-color);">
-                            <td style="padding: 12px 10px; font-weight: bold;">SIN-${folioPersonal.toString().padStart(3, '0')}</td>
-                            <td style="padding: 12px 10px;">${lugar}</td>
-                            <td style="padding: 12px 10px;">${seguro}</td>
-                            <td style="padding: 12px 10px; color: var(--text-muted);">${kms}</td>
-                            <td style="padding: 12px 10px; color: var(--text-muted);">${fecha}</td>
-                            <td style="padding: 12px 10px;">
-                                <span style="border: 1px solid ${colorEstado}; color: ${colorEstado}; padding: 3px 10px; border-radius: 12px; font-size: 0.85em;">
-                                    ${exp.Estado}
-                                </span>
-                            </td>
-                            <td style="padding: 12px 10px; color: #2ecc71; font-weight: bold;">${monto}</td>
-                        </tr>
-                    `;
-                });
-
-                htmlTabla += `</tbody></table>`;
-                contenedor.innerHTML += htmlTabla;
-            }
-        }
-    } catch (error) { console.error("Error al cargar la tabla detallada:", error); }
-}
-
 function mostrarFormularioAlta() { document.getElementById('formNuevoUsuario').style.display = 'flex'; }
 function ocultarFormularioAlta() { document.getElementById('formNuevoUsuario').style.display = 'none'; }
+
+let cacheUsuariosAdmin = [];
 
 async function cargarPersonal() {
     try {
         const res = await fetch('http://localhost:3000/api/usuarios');
         if (res.ok) {
-            const usuarios = await res.json();
-            document.getElementById('kpiPersonal').innerText = usuarios.length;
+            cacheUsuariosAdmin = await res.json();
 
-            const lista = document.getElementById('listaPersonal');
-            if(!lista) return;
-            lista.innerHTML = '';
+            // ACTUALIZAR KPIs DE PERSONAL
+            document.getElementById('kpiTotal').innerText = cacheUsuariosAdmin.length;
+            document.getElementById('kpiAjustadores').innerText = cacheUsuariosAdmin.filter(u => u.Rol === 'Ajustador').length;
+            document.getElementById('kpiAdmin').innerText = cacheUsuariosAdmin.filter(u => u.Rol !== 'Ajustador').length;
+            document.getElementById('kpiOnline').innerText = cacheUsuariosAdmin.filter(u => u.Estado === 'online').length;
 
-            usuarios.forEach(u => {
+            const tablaDirectorio = document.getElementById('tablaDirectorioPersonal');
+            if(!tablaDirectorio) return;
+            tablaDirectorio.innerHTML = '';
+
+            cacheUsuariosAdmin.forEach(u => {
                 let colorRol = u.Rol === 'Admin' ? '#e74c3c' : (u.Rol === 'Analista' ? '#f39c12' : '#3498db');
+                const puestoTxt = u.Puesto || u.Rol;
+                const ciudadTxt = u.Ciudad || 'MÉRIDA';
 
-                lista.innerHTML += `
-                    <li style="padding: 10px; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <strong style="color: var(--text-color); font-size: 0.9em;">${u.Nombre}</strong><br>
-                            <span style="font-size: 0.8em; color: var(--text-muted);">${u.Correo}</span>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <span style="color: ${colorRol}; font-size: 0.8em; font-weight: bold;">${u.Rol}</span>
-                            <button onclick="abrirModalEditar(${u.UsuarioID}, '${u.Nombre}', '${u.Correo}', '${u.Rol}')" style="background: transparent; color: #f39c12; border: none; cursor: pointer; font-size: 1.1em;" title="Editar Empleado">✏️</button>
-                            <button onclick="preguntarAccion(${u.UsuarioID}, '${u.Nombre}', 'eliminar')" style="background: transparent; color: #e74c3c; border: none; cursor: pointer; font-size: 1.1em;" title="Eliminar Empleado">🗑️</button>
-                        </div>
-                    </li>
+                // Lógica del estado (En Línea o Última Vez)
+                let estadoTexto = '';
+                if (u.Estado === 'online') {
+                    estadoTexto = '<span style="color: #2ecc71; font-weight: bold;">🟢 En línea</span>';
+                } else {
+                    let ultima = u.UltimaConexion ? new Date(u.UltimaConexion).toLocaleDateString('es-MX', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'}) : 'Nunca';
+                    estadoTexto = `<span style="color: var(--text-muted);">⚪ Offline</span><br><span style="font-size: 0.75em; color: var(--text-muted);">Últ: ${ultima}</span>`;
+                }
+
+                // Añadimos un id al td del estado para actualizarlo fácilmente por socket
+                tablaDirectorio.innerHTML += `
+                    <tr style="border-bottom: 1px solid var(--border-color); transition: background 0.3s;">
+                        <td style="padding: 12px 10px; font-weight: bold;">${u.Nombre.toUpperCase()}</td>
+                        <td style="padding: 12px 10px; color: var(--text-muted);">${puestoTxt.toUpperCase()}</td>
+                        <td style="padding: 12px 10px;">${ciudadTxt.toUpperCase()}</td>
+                        <td style="padding: 12px 10px; color: var(--primary-color);">${u.Correo}</td>
+                        <td style="padding: 12px 10px;"><span style="color: ${colorRol}; font-weight: bold;">${u.Rol}</span></td>
+                        <td style="padding: 12px 10px;" id="estado-user-${u.UsuarioID}">${estadoTexto}</td>
+                        <td style="padding: 12px 10px; text-align: center;">
+                            <button onclick="abrirModalEditar(${u.UsuarioID})" style="background: transparent; color: #f39c12; border: 1px solid #f39c12; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 0.85em; font-weight: bold; margin-right: 5px;">✏️ Editar</button>
+                            <button onclick="preguntarAccion(${u.UsuarioID}, '${u.Nombre.replace(/'/g, "\\'")}', 'eliminar')" style="background: transparent; color: #e74c3c; border: 1px solid #e74c3c; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 0.85em; font-weight: bold;">🗑️ Baja</button>
+                        </td>
+                    </tr>
                 `;
             });
         }
@@ -185,8 +126,10 @@ if (formNuevoUsuario) {
     formNuevoUsuario.addEventListener('submit', async (e) => {
         e.preventDefault();
         const payload = {
-            nombre: document.getElementById('nuevoNombre').value,
-            correo: document.getElementById('nuevoCorreo').value,
+            nombre: document.getElementById('nuevoNombre').value.trim(),
+            puesto: document.getElementById('nuevoPuesto').value.trim(),
+            ciudad: document.getElementById('nuevaCiudad').value.trim(),
+            correo: document.getElementById('nuevoCorreo').value.trim(),
             password: document.getElementById('nuevoPassword').value,
             rol: document.getElementById('nuevoRol').value
         };
@@ -199,7 +142,7 @@ if (formNuevoUsuario) {
             });
 
             if (res.ok) {
-                mostrarToast("Empleado registrado exitosamente.", "success");
+                mostrarToast("Empleado registrado exitosamente. Puedes asignarle sueldo en Panel de Pagos.", "success");
                 formNuevoUsuario.reset();
                 ocultarFormularioAlta();
                 cargarPersonal();
@@ -207,18 +150,23 @@ if (formNuevoUsuario) {
                 const errorData = await res.json().catch(() => ({}));
                 mostrarToast(`Error al registrar: ${errorData.error || 'Correo ya registrado.'}`, "error");
             }
-        } catch (error) { console.error("Error:", error); mostrarToast("Error de conexión con el servidor.", "error"); }
+        } catch (error) { mostrarToast("Error de conexión con el servidor.", "error"); }
     });
 }
 
 // ==========================================
 // LÓGICA DE EDICIÓN DE USUARIO
 // ==========================================
-function abrirModalEditar(id, nombre, correo, rol) {
-    document.getElementById('editUsuarioID').value = id;
-    document.getElementById('editNombre').value = nombre;
-    document.getElementById('editCorreo').value = correo;
-    document.getElementById('editRol').value = rol;
+function abrirModalEditar(id) {
+    const u = cacheUsuariosAdmin.find(user => user.UsuarioID === id);
+    if (!u) return;
+
+    document.getElementById('editUsuarioID').value = u.UsuarioID;
+    document.getElementById('editNombre').value = u.Nombre || '';
+    document.getElementById('editPuesto').value = u.Puesto || u.Rol || '';
+    document.getElementById('editCiudad').value = u.Ciudad || 'MÉRIDA';
+    document.getElementById('editCorreo').value = u.Correo || '';
+    document.getElementById('editRol').value = u.Rol || 'Ajustador';
     document.getElementById('editPassword').value = '';
 
     document.getElementById('modalEditarUsuario').style.display = 'flex';
@@ -235,8 +183,10 @@ if (formEditarUsuario) {
 
         const id = document.getElementById('editUsuarioID').value;
         const payload = {
-            nombre: document.getElementById('editNombre').value,
-            correo: document.getElementById('editCorreo').value,
+            nombre: document.getElementById('editNombre').value.trim(),
+            puesto: document.getElementById('editPuesto').value.trim(),
+            ciudad: document.getElementById('editCiudad').value.trim(),
+            correo: document.getElementById('editCorreo').value.trim(),
             password: document.getElementById('editPassword').value,
             rol: document.getElementById('editRol').value
         };
@@ -257,12 +207,10 @@ if (formEditarUsuario) {
                 mostrarToast(`Error al actualizar: ${errorData.error || 'Correo en uso.'}`, "error");
             }
         } catch (error) {
-            console.error("Error al actualizar usuario:", error);
             mostrarToast("Error de conexión con el servidor.", "error");
         }
     });
 }
-
 
 let accionPendiente = null;
 let idObjetivo = null;
@@ -274,7 +222,7 @@ function preguntarAccion(id, dato, tipoAccion) {
     datoExtra = dato;
 
     let texto = "";
-    if (tipoAccion === 'eliminar') texto = `¿Estás seguro de que deseas eliminar permanentemente a ${dato} del sistema?`;
+    if (tipoAccion === 'eliminar') texto = `¿Estás seguro de que deseas dar de baja a ${dato}? Desaparecerá también del Panel de Nómina.`;
 
     document.getElementById('textoConfirmacion').innerText = texto;
     document.getElementById('modalConfirmacion').style.display = 'flex';
@@ -295,87 +243,15 @@ async function confirmarAccion() {
                 mostrarToast(`Empleado ${datoExtra} eliminado.`, "success");
                 cargarPersonal();
             } else {
-                mostrarToast("No se puede eliminar. Este usuario ya tiene expedientes.", "error");
+                mostrarToast("No se puede eliminar. Este usuario ya tiene expedientes vinculados.", "error");
             }
         } catch (error) { console.error("Error eliminando:", error); }
     }
 }
 
-async function exportarExcel() {
-    try {
-        mostrarToast("⏳ Generando archivo Excel con diseño...", "info");
-
-        const res = await fetch('http://localhost:3000/api/exportar-excel');
-
-        if (res.ok) {
-            const blob = await res.blob();
-            const url = window.URL.createObjectURL(blob);
-
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `Reporte_Detallado_ASPV_${new Date().toLocaleDateString('es-MX')}.xlsx`;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-
-            window.URL.revokeObjectURL(url);
-            mostrarToast("✅ Exportación a Excel completada.", "success");
-        } else {
-            mostrarToast("❌ Error al generar el Excel en el servidor.", "error");
-        }
-    } catch (error) {
-        console.error("Error exportando a Excel:", error);
-        mostrarToast("❌ Error de red al intentar descargar.", "error");
-    }
-}
-
-async function inicializarGraficas() {
-    try {
-        const res = await fetch('http://localhost:3000/api/dashboard/grafica');
-        if (!res.ok) return;
-        const datosBD = await res.json();
-
-        const etiquetas = [];
-        const valores = [];
-
-        for (let i = 6; i >= 0; i--) {
-            const d = new Date();
-            d.setDate(d.getDate() - i);
-            const year = d.getFullYear();
-            const month = String(d.getMonth() + 1).padStart(2, '0');
-            const day = String(d.getDate()).padStart(2, '0');
-            const fechaStr = `${year}-${month}-${day}`;
-
-            const nombreDia = d.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric' });
-            etiquetas.push(nombreDia);
-
-            const datoEncontrado = datosBD.find(item => item.fecha === fechaStr);
-            valores.push(datoEncontrado ? datoEncontrado.total : 0);
-        }
-
-        const ctx = document.getElementById('graficaPeriodo').getContext('2d');
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: etiquetas,
-                datasets: [{
-                    label: 'Siniestros Registrados',
-                    data: valores,
-                    borderColor: '#3498db',
-                    backgroundColor: 'rgba(52, 152, 219, 0.2)',
-                    fill: true,
-                    tension: 0.4
-                }]
-            },
-            options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
-        });
-    } catch (error) { console.error("Error al cargar gráfica real:", error); }
-}
-
 async function revisarNotificaciones() {
     const rol = localStorage.getItem('aspv_rol');
     const idUsuario = localStorage.getItem('aspv_id') || 0;
-
     if (!rol) return;
 
     try {
@@ -389,12 +265,10 @@ async function revisarNotificaciones() {
                 if (datos.pendientes > 0) {
                     badge.innerText = datos.pendientes;
                     badge.style.display = 'block';
-
                     listaUI.innerHTML = '';
 
                     datos.detalle.forEach(noti => {
                         const fecha = new Date(noti.Fecha).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-
                         const li = document.createElement('li');
                         li.style.cssText = 'padding: 15px; border-bottom: 1px solid var(--border-color); display: flex; gap: 15px; align-items: flex-start; transition: background 0.2s;';
                         li.innerHTML = `
@@ -403,7 +277,7 @@ async function revisarNotificaciones() {
                                 <p style="margin: 0 0 5px 0; font-size: 0.9em; color: var(--text-color);"><strong>${noti.Remitente}</strong> ${noti.Mensaje}</p>
                                 <span style="font-size: 0.75em; color: var(--text-muted);">${fecha}</span>
                             </div>
-                            <div class="punk-azul" style="width: 10px; height: 10px; background-color: var(--primary-color); border-radius: 50%; margin-top: 5px; flex-shrink: 0;"></div>
+                            <div class="punto-azul" style="width: 10px; height: 10px; background-color: var(--primary-color); border-radius: 50%; margin-top: 5px; flex-shrink: 0;"></div>
                         `;
                         listaUI.appendChild(li);
                     });
@@ -413,21 +287,46 @@ async function revisarNotificaciones() {
                 }
             }
         }
-    } catch (error) {
-        console.error("Esperando backend...", error);
-    }
+    } catch (error) {}
 }
+
+// ==========================================
+// SOCKET.IO: INTEGRACIÓN DE ESTADOS EN TIEMPO REAL
+// ==========================================
+const socket = io("http://localhost:3000");
+
+socket.on("connect", () => {
+    if (miUsuarioIdGbl) {
+        socket.emit("registerUser", miUsuarioIdGbl);
+    }
+});
+
+// Actualiza el estado visualmente en la tabla cuando alguien se conecta/desconecta
+socket.on('estadoUsuarioCambio', (data) => {
+    const tdEstado = document.getElementById(`estado-user-${data.userId}`);
+    if (tdEstado) {
+        if (data.estado === 'online') {
+            tdEstado.innerHTML = '<span style="color: #2ecc71; font-weight: bold;">🟢 En línea</span>';
+        } else {
+            let ultima = data.ultimaVez ? new Date(data.ultimaVez).toLocaleDateString('es-MX', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'}) : 'Recién';
+            tdEstado.innerHTML = `<span style="color: var(--text-muted);">⚪ Offline</span><br><span style="font-size: 0.75em; color: var(--text-muted);">Últ: ${ultima}</span>`;
+        }
+    }
+
+    // Opcional: Actualizar el KPI de conectados (podría requerir un recálculo iterando la tabla o recargando personal)
+    // Para simplificar, recargaremos la lista de personal de forma silenciosa para mantener los KPIs consistentes.
+    // Solo recargamos si no hay un modal abierto para no interrumpir al usuario.
+    const modalAbierto = document.getElementById('modalEditarUsuario').style.display === 'flex' || document.getElementById('formNuevoUsuario').style.display === 'flex';
+    if(!modalAbierto){
+        cargarPersonal();
+    }
+});
 
 document.addEventListener("DOMContentLoaded", () => {
     const nombreUI = document.getElementById('nombreUsuarioUI');
-    if (nombreUI) {
-        nombreUI.innerText = `Hola, ${nombreUsuario || 'Administrador'}`;
-    }
+    if (nombreUI) nombreUI.innerText = `Hola, ${nombreUsuario || 'Administrador'}`;
 
-    cargarMetricas();
     cargarPersonal();
-    cargarTablaDetallada();
-    inicializarGraficas();
 
     const marcarBtn = document.getElementById('marcarLeidasBtn');
     if (marcarBtn) {
@@ -449,7 +348,6 @@ document.addEventListener("DOMContentLoaded", () => {
 // ==========================================
 // PERFIL DE USUARIO (UNIVERSAL)
 // ==========================================
-const miUsuarioIdGbl = localStorage.getItem('aspv_id');
 
 async function cargarDatosPerfil() {
     if (!miUsuarioIdGbl) return;
@@ -457,19 +355,13 @@ async function cargarDatosPerfil() {
         const res = await fetch(`http://localhost:3000/api/perfil/${miUsuarioIdGbl}`);
         if (res.ok) {
             const perfil = await res.json();
-
-            // Actualizar la foto en el header (si existe)
             const avatarUrl = perfil.FotoPerfil ? `http://localhost:3000/${perfil.FotoPerfil}` : 'imagenes/LogoASPV.jpg';
             const avatarHeader = document.getElementById('avatarHeader');
             if (avatarHeader) avatarHeader.src = avatarUrl;
-
-            // Llenar el modal (si existe en el DOM actual)
             const previewFoto = document.getElementById('previewFotoPerfil');
             if (previewFoto) previewFoto.src = avatarUrl;
-
             const correoInput = document.getElementById('correoPerfil');
             if (correoInput) correoInput.value = perfil.Correo;
-
             const telInput = document.getElementById('telefonoPerfil');
             if (telInput) telInput.value = perfil.Telefono || '';
         }
@@ -486,7 +378,6 @@ function cerrarModalPerfil() {
     if (modal) modal.style.display = 'none';
 }
 
-// Vista previa de la foto
 const inputFoto = document.getElementById('inputFotoPerfil');
 if (inputFoto) {
     inputFoto.addEventListener('change', function(e) {
@@ -498,16 +389,13 @@ if (inputFoto) {
     });
 }
 
-// Guardar en Base de Datos
 const formPerfil = document.getElementById('formPerfil');
 if (formPerfil) {
     formPerfil.addEventListener('submit', async (e) => {
         e.preventDefault();
         mostrarToast("Guardando perfil...", "info");
-
         const formData = new FormData();
         formData.append('telefono', document.getElementById('telefonoPerfil').value.trim());
-
         const foto = document.getElementById('inputFotoPerfil').files[0];
         if (foto) formData.append('fotoPerfil', foto);
 
@@ -519,7 +407,7 @@ if (formPerfil) {
 
             if (res.ok) {
                 mostrarToast("✅ Perfil actualizado.", "success");
-                cargarDatosPerfil(); // Recarga la foto
+                cargarDatosPerfil();
                 cerrarModalPerfil();
             } else {
                 mostrarToast("❌ Error al guardar perfil.", "error");
@@ -530,7 +418,6 @@ if (formPerfil) {
     });
 }
 
-// Llamar automáticamente al entrar
 document.addEventListener("DOMContentLoaded", () => {
     cargarDatosPerfil();
 });

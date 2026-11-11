@@ -8,7 +8,7 @@
 </head>
 <body>
 
-<!-- Menú Lateral -->
+<!-- Menú Lateral Unificado -->
 <aside class="sidebar">
     <img src="imagenes/LogoASPV.jpg" alt="Logo ASPV" style="width: 110px; margin-bottom: 15px; margin-top: 5px; border-radius: 12px;">
     <p style="color: var(--text-muted); font-size: 0.9em; margin-bottom: 40px;">GESTIÓN DE SINIESTROS</p>
@@ -16,42 +16,38 @@
     <nav style="display: flex; flex-direction: column; gap: 15px;" id="navMenu">
         <strong>Menú Principal</strong>
 
-        <!-- Enlaces -->
-        <a href="admin.html" id="btnAdmin" style="display: none; color: var(--text-color); text-decoration: none;">⚙️ Gerencia y Usuarios</a>
         <a href="resumen.html" id="btnAnalista" style="display: none; color: var(--text-color); text-decoration: none;">📊 Panel de Análisis</a>
         <a href="pagos.html" id="btnPagos" style="display: none; color: var(--text-color); text-decoration: none;">💰 Panel de Pagos</a>
         <a href="index.html" id="btnAjustador" style="display: none; color: var(--text-color); text-decoration: none;">📁 Mis Expedientes</a>
-        <a href="calendario.html" id="btnCalendario" style="display: none; color: var(--text-color); text-decoration: none;">📅 Calendario</a>
-
-        <!-- NUEVO: Enlace al Muro Global -->
         <a href="muro.html" id="btnMuro" style="display: none; color: var(--text-color); text-decoration: none;">🌐 Muro Global</a>
+        <a href="calendario.html" id="btnCalendario" style="display: none; color: var(--text-color); text-decoration: none;">📅 Calendario</a>
+        <a href="admin.html" id="btnAdmin" style="display: none; color: var(--text-color); text-decoration: none;">⚙️ Gerencia y Usuarios</a>
 
-        <!-- Script inteligente que muestra solo lo permitido según el rol -->
         <script>
-            const rolActual = localStorage.getItem('aspv_rol');
+            const mostrarMenu = (id) => {
+                const elemento = document.getElementById(id);
+                if (elemento) elemento.style.display = 'block';
+            };
 
-            // TODOS los roles pueden ver el muro
-            if(document.getElementById('btnMuro')) {
-                document.getElementById('btnMuro').style.display = 'block';
-            }
+            const rolActual = localStorage.getItem('aspv_rol');
+            mostrarMenu('btnMuro');
 
             if (rolActual === 'Admin') {
-                document.getElementById('btnAdmin').style.display = 'block';
-                document.getElementById('btnAnalista').style.display = 'block';
-                document.getElementById('btnPagos').style.display = 'block';
-                document.getElementById('btnCalendario').style.display = 'block';
+                mostrarMenu('btnAdmin');
+                mostrarMenu('btnAnalista');
+                mostrarMenu('btnPagos');
+                mostrarMenu('btnCalendario');
             } else if (rolActual === 'Analista') {
-                document.getElementById('btnAnalista').style.display = 'block';
-                document.getElementById('btnCalendario').style.display = 'block';
+                mostrarMenu('btnAnalista');
+                mostrarMenu('btnCalendario');
             } else if (rolActual === 'Analista de Pagos') {
-                document.getElementById('btnPagos').style.display = 'block';
-                document.getElementById('btnCalendario').style.display = 'block';
+                mostrarMenu('btnPagos');
+                mostrarMenu('btnCalendario');
             } else if (rolActual === 'Ajustador') {
-                document.getElementById('btnAjustador').style.display = 'block';
-                document.getElementById('btnCalendario').style.display = 'block';
+                mostrarMenu('btnAjustador');
+                mostrarMenu('btnCalendario');
             }
 
-            // Resalta en azul la página actual automáticamente
             const urlActual = window.location.pathname.split('/').pop() || 'index.html';
             document.querySelectorAll('#navMenu a').forEach(enlace => {
                 if (enlace.getAttribute('href') === urlActual) {
@@ -61,7 +57,6 @@
             });
         </script>
 
-        <!-- Controles de Accesibilidad -->
         <div style="margin-top: 40px;">
             <p style="font-size: 0.8em; color: var(--text-muted); margin-bottom: 8px;">Apariencia:</p>
             <div style="display: flex; gap: 5px;">
@@ -74,20 +69,17 @@
     </nav>
 </aside>
 
-<!-- Contenido Principal -->
 <main class="main-content">
     <header class="topbar">
-        <!-- Grupo de Filtros Avanzados Compacto -->
         <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; flex: 1;">
-
-            <input type="text" id="buscadorPagos" onkeyup="filtrarCajasVisuales()" placeholder="🔍 Buscar ID, Fecha..." style="padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--panel-bg); color: var(--text-color); width: 180px;">
+            <input type="text" id="buscadorPagos" onkeyup="filtrarCajasVisuales()" placeholder="🔍 Buscar ID, Nombre, Ciudad..." style="padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--panel-bg); color: var(--text-color); width: 200px;">
 
             <input type="month" id="filtroMes" onchange="cargarTablaPagos()" style="padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--panel-bg); color: var(--text-color); font-weight: bold;" title="Selecciona un mes y año">
 
             <select id="filtroQuincena" onchange="cargarTablaPagos()" style="padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--panel-bg); color: var(--text-color); font-weight: bold;">
-                <option value="Todas">📅 Quincenas</option>
-                <option value="1ra">1ra (1-15)</option>
-                <option value="2da">2da (16-31)</option>
+                <option value="Todas">📅 Todo el mes (100%)</option>
+                <option value="1ra">1ra Quincena (1-15)</option>
+                <option value="2da">2da Quincena (16-31)</option>
             </select>
 
             <select id="filtroEstadoPagos" onchange="filtrarCajasVisuales()" style="padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--panel-bg); color: var(--text-color); font-weight: bold;">
@@ -97,20 +89,17 @@
                 <option value="Concluido">🟢 Concluido</option>
             </select>
 
-            <!-- Botón para ver todo el historial rápido (Icono) -->
             <button onclick="limpiarFiltros()" title="Limpiar todos los filtros" style="padding: 8px 12px; border-radius: 6px; border: none; background: var(--primary-color); color: white; cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center;">
                 🔄
             </button>
         </div>
 
         <div style="display: flex; align-items: center; gap: 20px; position: relative;">
-            <!-- Ícono de Mensajes / Chat (Redirige a chat.html) -->
             <div onclick="window.location.href='chat.html'" style="position: relative; cursor: pointer; display: flex; align-items: center;" title="Abrir Mensajes Operativos">
                 <span style="font-size: 1.5em;">💬</span>
                 <span id="mensaje-badge" style="display: none; position: absolute; top: -5px; right: -8px; background: #e74c3c; color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.7em; font-weight: bold; border: 2px solid var(--panel-bg);">0</span>
             </div>
 
-            <!-- PERFIL DE USUARIO DINÁMICO -->
             <div class="user-profile" style="display: flex; align-items: center; gap: 15px;">
                 <img id="avatarHeader" src="imagenes/LogoASPV.jpg" alt="Avatar" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary-color);">
                 <strong id="nombreUsuarioUI">Hola, Cargando...</strong>
@@ -122,9 +111,8 @@
 
     <div class="dashboard">
         <h1 style="margin-top: 0;">Panel de Pagos y Nómina</h1>
-        <p style="color: var(--text-muted);">Monitorea los siniestros concluidos por cada ajustador y el cálculo de su quincena ($230 fijos por siniestro).</p>
+        <p style="color: var(--text-muted);">Configura los sueldos fijos del personal administrativo y los tabuladores por ciudad/kilometraje de los ajustadores.</p>
 
-        <!-- Tarjetas KPI de Pagos -->
         <div class="kpi-grid">
             <div class="card">
                 <h4 style="margin: 0; color: var(--text-muted);">Expedientes Activos</h4>
@@ -141,41 +129,94 @@
             <div class="card" style="border: 1px solid #2ecc7150;">
                 <h4 style="margin: 0; color: var(--text-muted);">Nómina Global Aprox.</h4>
                 <h2 id="kpiTotalPagos" style="margin: 10px 0; color: #2ecc71;">$0.00</h2>
-                <p style="margin: 0; font-size: 0.85em; color: var(--text-muted);">Suma total de comisiones</p>
+                <p style="margin: 0; font-size: 0.85em; color: var(--text-muted);">Sueldos fijos + Comisiones</p>
             </div>
         </div>
 
-        <!-- Bandeja de Pagos -->
         <div class="card" style="margin-top: 20px;">
             <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px;">
                 <div>
-                    <h3 style="margin: 0;">Auditoría de Siniestros y Comisiones</h3>
-                    <p style="color: var(--text-muted); font-size: 0.9em; margin-top: 5px; margin-bottom: 0;">Modo lectura: Verifica los expedientes para autorizar los pagos correspondientes.</p>
+                    <h3 style="margin: 0;">Tabulador Oficial de Nómina y Auditoría</h3>
+                    <p style="color: var(--text-muted); font-size: 0.9em; margin-top: 5px; margin-bottom: 0;">Haz clic en "✏️ Asignar Sueldo / Tarifas" en cualquier empleado para actualizar sus costos en la base de datos.</p>
                 </div>
                 <button onclick="exportarExcel()" style="background-color: #2ecc71; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 8px; font-size: 0.9em; transition: 0.3s;">
                     📊 Exportar a Excel
                 </button>
             </div>
 
-            <div id="contenedorTablasPagos" style="overflow-x: auto; margin-top: 15px;">
-                <!-- JS inyectará aquí -->
-            </div>
+            <div id="contenedorTablasPagos" style="overflow-x: auto; margin-top: 15px;"></div>
         </div>
     </div>
 </main>
 
-<!-- Modal de Solo Lectura -->
+<!-- MODAL PARA CONFIGURAR SUELDO FIJO O TARIFAS DE AJUSTADOR -->
+<div id="modalEditarNomina" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1500; justify-content: center; align-items: center;">
+    <div class="card" style="width: 440px; max-width: 90%; background: var(--panel-bg); border-radius: 12px; padding: 20px; position: relative;">
+        <button onclick="cerrarModalNomina()" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.2em; color: var(--text-color); cursor: pointer;">✖</button>
+        <h3 style="margin-top: 0; color: var(--primary-color);">💰 Configurar Nómina: <span id="nominaNombreEmpleado"></span></h3>
+        <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 12px 0;">
+
+        <form id="formEditarNomina" style="display: flex; flex-direction: column; gap: 12px;">
+            <input type="hidden" id="nominaUsuarioID">
+            <input type="hidden" id="nominaRolEmpleado">
+
+            <div style="display: flex; gap: 10px;">
+                <div style="flex: 1;">
+                    <label style="font-size: 0.8em; color: var(--text-muted); font-weight: bold;">Puesto</label>
+                    <input type="text" id="nominaPuesto" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); box-sizing: border-box; margin-top: 4px;">
+                </div>
+                <div style="flex: 1;">
+                    <label style="font-size: 0.8em; color: var(--text-muted); font-weight: bold;">Ciudad</label>
+                    <input type="text" id="nominaCiudad" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); box-sizing: border-box; margin-top: 4px;">
+                </div>
+            </div>
+
+            <!-- SECCIÓN SOLO PARA PERSONAL FIJO -->
+            <div id="bloqueCamposFijo" style="display: none; flex-direction: column; gap: 6px;">
+                <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold;">Sueldo Mensual Base ($ MXN)</label>
+                <input type="number" step="0.01" id="nominaSueldoMensual" placeholder="Ej. 1000.00" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); box-sizing: border-box;">
+                <small style="color: var(--text-muted); font-size: 0.75em;">El sistema dividirá automáticamente entre 2 al filtrar por 1ra o 2da Quincena.</small>
+            </div>
+
+            <!-- SECCIÓN SOLO PARA AJUSTADORES -->
+            <div id="bloqueCamposAjustador" style="display: none; flex-direction: column; gap: 10px;">
+                <div style="display: flex; gap: 10px;">
+                    <div style="flex: 1;">
+                        <label style="font-size: 0.8em; color: var(--text-muted); font-weight: bold;">Costo Atención Local ($)</label>
+                        <input type="number" step="0.01" id="nominaCostoLocal" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); box-sizing: border-box; margin-top: 4px;">
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-size: 0.8em; color: var(--text-muted); font-weight: bold;">Costo Atención Foráneo ($)</label>
+                        <input type="number" step="0.01" id="nominaCostoForaneo" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); box-sizing: border-box; margin-top: 4px;">
+                    </div>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <div style="flex: 1;">
+                        <label style="font-size: 0.8em; color: var(--text-muted); font-weight: bold;">Costo por KM ($)</label>
+                        <input type="number" step="0.01" id="nominaCostoKm" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); box-sizing: border-box; margin-top: 4px;">
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-size: 0.8em; color: var(--text-muted); font-weight: bold;">Costo por KM Inbursa ($)</label>
+                        <input type="number" step="0.01" id="nominaCostoKmInbursa" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); box-sizing: border-box; margin-top: 4px;">
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" style="background-color: #2ecc71; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 8px;">
+                💾 Guardar en Base de Datos
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Modal de Solo Lectura de Documentos -->
 <div id="modalPagos" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center;">
     <div class="card" style="width: 550px; max-width: 90%; background: var(--panel-bg); border-radius: 12px; padding: 20px; position: relative;">
         <button onclick="cerrarModalPagos()" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.2em; color: var(--text-color); cursor: pointer;">✖</button>
-
         <h3 style="margin-top: 0;">Expediente <span id="modalPagosExpId" style="color: var(--primary-color);"></span></h3>
         <p style="color: var(--text-muted); font-size: 0.9em; margin-top: -10px;">Auditoría de documentos (Modo lectura).</p>
         <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 15px 0;">
-
-        <div id="modalPagosContenido" style="display: flex; flex-direction: column; gap: 10px;">
-            <!-- Contenido inyectado por JS -->
-        </div>
+        <div id="modalPagosContenido" style="display: flex; flex-direction: column; gap: 10px;"></div>
     </div>
 </div>
 
@@ -194,26 +235,20 @@
                 <img id="previewFotoPerfil" src="imagenes/LogoASPV.jpg" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary-color); margin-bottom: 10px;">
                 <input type="file" id="inputFotoPerfil" accept="image/*" style="width: 100%; font-size: 0.8em; color: var(--text-color);">
             </div>
-
             <div>
                 <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold;">Correo (No editable)</label>
                 <input type="text" id="correoPerfil" disabled style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-muted); margin-top: 5px; box-sizing: border-box; opacity: 0.7;">
             </div>
-
             <div>
                 <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold;">Teléfono Celular</label>
                 <input type="text" id="telefonoPerfil" placeholder="Ej. 999 123 4567" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); margin-top: 5px; box-sizing: border-box;">
             </div>
-
             <button type="submit" style="background-color: #2ecc71; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px;">💾 Guardar Cambios</button>
         </form>
     </div>
 </div>
 
-<!-- Cargar Socket.io para el chat PRIMERO -->
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-
-<!-- Cargar tu app.js DESPUÉS para que ya pueda usar Socket.io -->
 <script src="pagos.js"></script>
 
 </body>
