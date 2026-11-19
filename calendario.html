@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ASPV - Calendario de Siniestros</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/style.css">
 
     <!-- Librería FullCalendar para magia visual -->
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
@@ -34,7 +34,7 @@
 
 <!-- Menú Lateral Unificado (IDÉNTICO A LOS DEMÁS) -->
 <aside class="sidebar">
-    <img src="imagenes/LogoASPV.jpg" alt="Logo ASPV" style="width: 110px; margin-bottom: 15px; margin-top: 5px; border-radius: 12px;">
+    <img src="assets/img/LogoASPV.jpg" alt="Logo ASPV" style="width: 110px; margin-bottom: 15px; margin-top: 5px; border-radius: 12px;">
     <p style="color: var(--text-muted); font-size: 0.9em; margin-bottom: 40px;">GESTIÓN DE SINIESTROS</p>
 
     <nav style="display: flex; flex-direction: column; gap: 15px;" id="navMenu">
@@ -114,7 +114,7 @@
                 <span id="mensaje-badge" style="display: none; position: absolute; top: -5px; right: -8px; background: #e74c3c; color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.7em; font-weight: bold; border: 2px solid var(--panel-bg);">0</span>
             </div>
 
-            <img id="avatarHeader" src="imagenes/LogoASPV.jpg" alt="Avatar" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary-color);">
+            <img id="avatarHeader" src="assets/img/LogoASPV.jpg" alt="Avatar" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary-color);">
             <strong id="nombreUsuarioUI">Hola, Cargando...</strong>
             <button onclick="abrirModalPerfil()" style="background-color: var(--primary-color); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s;">👤 Mi Perfil</button>
             <button onclick="cerrarSesion()" style="background-color: #e74c3c; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s;">Salir 🚪</button>
@@ -140,7 +140,7 @@
 
         <form id="formPerfil" style="display: flex; flex-direction: column; gap: 15px; text-align: left;">
             <div style="text-align: center;">
-                <img id="previewFotoPerfil" src="imagenes/LogoASPV.jpg" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary-color); margin-bottom: 10px;">
+                <img id="previewFotoPerfil" src="assets/img/LogoASPV.jpg" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary-color); margin-bottom: 10px;">
                 <input type="file" id="inputFotoPerfil" accept="image/*" style="width: 100%; font-size: 0.8em; color: var(--text-color);">
             </div>
 
@@ -165,7 +165,7 @@
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 
 <!-- Tu script base DESPUÉS -->
-<script src="calendario.js"></script>
+<script src="js/calendario.js"></script>
 
 </body>
 </html>

@@ -4,13 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ASPV - Gerencia y Usuarios</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
 <!-- Menú Lateral Unificado -->
 <aside class="sidebar">
-    <img src="imagenes/LogoASPV.jpg" alt="Logo ASPV" style="width: 110px; margin-bottom: 15px; margin-top: 5px; border-radius: 12px;">
+    <img src="assets/img/LogoASPV.jpg" alt="Logo ASPV" style="width: 110px; margin-bottom: 15px; margin-top: 5px; border-radius: 12px;">
     <p style="color: var(--text-muted); font-size: 0.9em; margin-bottom: 40px;">GESTIÓN DE SINIESTROS</p>
 
     <nav style="display: flex; flex-direction: column; gap: 15px;" id="navMenu">
@@ -98,7 +98,7 @@
             </div>
 
             <div class="user-profile" style="display: flex; align-items: center; gap: 15px;">
-                <img id="avatarHeader" src="imagenes/LogoASPV.jpg" alt="Avatar" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary-color);">
+                <img id="avatarHeader" src="assets/img/LogoASPV.jpg" alt="Avatar" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary-color);">
                 <strong id="nombreUsuarioUI">Hola, Cargando...</strong>
                 <button onclick="abrirModalPerfil()" style="background-color: var(--primary-color); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s;">👤 Mi Perfil</button>
                 <button onclick="cerrarSesion()" style="background-color: #e74c3c; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s;">Salir 🚪</button>
@@ -297,7 +297,7 @@
 
         <form id="formPerfil" style="display: flex; flex-direction: column; gap: 15px; text-align: left;">
             <div style="text-align: center;">
-                <img id="previewFotoPerfil" src="imagenes/LogoASPV.jpg" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary-color); margin-bottom: 10px;">
+                <img id="previewFotoPerfil" src="assets/img/LogoASPV.jpg" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary-color); margin-bottom: 10px;">
                 <input type="file" id="inputFotoPerfil" accept="image/*" style="width: 100%; font-size: 0.8em; color: var(--text-color);">
             </div>
             <div>
@@ -314,7 +314,7 @@
 </div>
 
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-<script src="admin.js"></script>
+<script src="js/admin.js"></script>
 
 </body>
 </html>

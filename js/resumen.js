@@ -604,7 +604,7 @@ async function cargarDatosPerfil() {
             const perfil = await res.json();
 
             // Actualizar la foto en el header (si existe)
-            const avatarUrl = perfil.FotoPerfil ? `http://localhost:3000/${perfil.FotoPerfil}` : 'imagenes/LogoASPV.jpg';
+            const avatarUrl = perfil.FotoPerfil ? `http://localhost:3000/${perfil.FotoPerfil}` : 'assets/img/LogoASPV.jpg';
             const avatarHeader = document.getElementById('avatarHeader');
             if (avatarHeader) avatarHeader.src = avatarUrl;
 
