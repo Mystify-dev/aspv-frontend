@@ -1,97 +1,108 @@
-# 🛡️ ASPV - Sistema Integral de Gestión de Siniestros
+# 🛡️ ASPV Frontend - Sistema Integral de Gestión de Siniestros
 
-![Status](https://img.shields.io/badge/Estado-Operativo-success)
-![Frontend](https://img.shields.io/badge/Frontend-HTML5%20%7C%20CSS3%20%7C%20Vanilla%20JS-blue)
-![Backend](https://img.shields.io/badge/Backend-Node.js%20%7C%20Express-green)
-![Base de Datos](https://img.shields.io/badge/Database-MySQL-orange)
+![Estado](https://img.shields.io/badge/Estado-En%20desarrollo-yellow)
+![HTML5](https://img.shields.io/badge/HTML5-E34F26?logo=html5&logoColor=white)
+![CSS3](https://img.shields.io/badge/CSS3-1572B6?logo=css3&logoColor=white)
+![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-F7DF1E?logo=javascript&logoColor=black)
+![Socket.io](https://img.shields.io/badge/Socket.io-4.x-010101?logo=socketdotio&logoColor=white)
+![Backend](https://img.shields.io/badge/Backend-aspv--backend-339933?logo=nodedotjs&logoColor=white)
 
-Plataforma web full-stack desarrollada para la automatización, control de expedientes, penalizaciones por tiempo y seguimiento en tiempo real de siniestros viales.
-
----
-
-## 🚀 Características Principales
-
-### 👥 1. Sistema de Roles y Privacidad
-* **Ajustadores (`index.html`):** Panel privado para registrar siniestros con datos detallados (póliza, seguro, monto, relatoría), subida de documentos e historial de casos propios.
-* **Analistas (`resumen.html`):** Vista centralizada para auditar documentación, modificar estados del siniestro (*En Análisis*, *En Ajuste*, *Concluido*), emitir reportes en PDF y solicitar correcciones.
-* **Administradores (`admin.html`):** Control global del sistema. Visualización de KPIs gerenciales, gráficas de rendimiento mediante **Chart.js** y módulo de gestión de personal (altas y bajas de empleados).
-
-### 🔄 2. Flujo de Trabajo Inteligente ("Ping-Pong" de Turnos)
-* **Gestión Documental (DOA, ORD, PM):** Subida de archivos PDF/Imágenes o marcado de casillas de excepción (*No Aplica / N/A*).
-* **Bloqueo por Turnos:** Mecanismo de control donde las interacciones se alternan estrictamente entre el Analista y el Ajustador.
-* **Rechazo Estricto de Documentos:** Si un analista detecta un archivo erróneo, puede rechazarlo; esto elimina el registro en la base de datos y bloquea las respuestas del ajustador hasta que vuelva a cargar el documento correcto.
-
-### 🔔 3. Sistema de Notificaciones en Tiempo Real
-* **Campanita Interactiva:** Panel flotante integrado en la barra superior para todos los roles.
-* **Polling Silencioso:** Consultas automáticas cada 10 segundos al backend para verificar alertas pendientes.
-* **Alertas Personalizadas:** Inyección dinámica de remitentes reales en las notificaciones.
-
-### ⏱️ 4. Reloj de 24 Horas y Calendario Operativo
-* Control de tiempo preciso basado en la fecha y hora exacta de creación del expediente con alertas visuales dinámicas para penalizaciones.
-* **Calendario (`calendario.html`):** Vista mensual interactiva que mapea los siniestros por día y estado actual.
-
-### 📊 5. Reportes y Accesibilidad
-* **Generador de PDF Automático:** Creación de reportes de cierre de siniestro mediante **jsPDF** al concluir un caso.
-* **Exportación CSV:** Descarga masiva del registro de siniestros para análisis administrativo.
-* **Accesibilidad UI:** Conmutador de Tema Claro / Oscuro y ajuste dinámico de tamaño de fuente.
+Cliente web (HTML, CSS y JavaScript sin framework) para la gestión de expedientes de siniestros viales de ASPV: captura de documentación, auditoría, control de tiempos y penalizaciones, nómina, mensajería interna en tiempo real y reportes. Consume la API REST y los WebSockets de `aspv-backend`.
 
 ---
 
-## 🛠️ Tecnologías Utilizadas
+## 🚀 Módulos y Vistas
 
-* **Frontend:** HTML5, CSS3 (Variables CSS personalizadas y diseño responsivo), JavaScript Vanilla (ES6+).
-* **Librerías Externas:** Chart.js (Gráficas analíticas), jsPDF & jsPDF-AutoTable (Generación de reportes PDF).
-* **Backend:** Node.js, Express.js.
-* **Base de Datos:** MySQL (con `mysql2/promise`).
-* **Seguridad:** Encriptación de contraseñas con `bcrypt` y control de sesiones mediante `localStorage`.
+El acceso se controla por rol, almacenado en `localStorage` tras iniciar sesión. Los roles definidos son `Ajustador`, `Analista`, `Analista de Pagos` y `Admin`.
+
+| Vista | Archivo | Roles | Descripción |
+|-------|---------|-------|-------------|
+| Inicio de sesión | `login.html` | Todos | Autenticación, aceptación obligatoria de Términos y Condiciones (v1.0) y redirección según rol. |
+| Mis Expedientes | `index.html` | Ajustador | Alta de siniestros (folio, póliza, aseguradora, cobertura, kilometraje, relatoría, marca de siniestro complementario), carga de documentos DOA/ORD/PM y fotografías, historial propio y exportación a Excel. |
+| Panel de Análisis | `resumen.html` | Analista, Admin | KPIs, bandeja de revisión agrupada por ajustador, rechazo de documentos, cambio de estado (*En Análisis*, *En Ajuste*, *Concluido*), descarga masiva y reporte PDF al concluir. |
+| Panel de Pagos | `pagos.html` | Analista de Pagos, Admin | Nómina por mes y quincena, sueldos fijos, tabulador de tarifas por ajustador (local, foráneo, km, km Inbursa), auditoría de documentos y exportación a Excel. |
+| Gerencia y Usuarios | `admin.html` | Admin | Directorio de personal, altas, ediciones y bajas, KPIs de plantilla y estado en línea en tiempo real. |
+| Calendario | `calendario.html` | Todos | Calendario mensual/semanal (FullCalendar) con siniestros por día, coloreados por estado. |
+| Mensajes Operativos | `chat.html` | Todos | Chat privado 1 a 1 con Socket.io: estado en línea/última conexión, adjuntos (documentos, fotos, video, cámara) y panel de archivos y enlaces compartidos. |
+| Muro Global | `muro.html` | Todos | Feed de siniestros con archivos descargables y comentarios del equipo. |
+
+### Funcionalidades transversales
+* **Tiempo real (Socket.io):** presencia de usuarios y contador de mensajes no leídos.
+* **Notificaciones:** panel de alertas con consulta periódica (cada 10 s) a la API y opción de marcar como leídas.
+* **Reportes:** PDF de cierre de siniestro con jsPDF y jsPDF-AutoTable; exportaciones a Excel (`.xlsx`) generadas por el backend.
+* **Perfil de usuario:** foto y teléfono editables desde cualquier vista.
+* **Accesibilidad:** tema claro/oscuro y tamaño de texto ajustable, persistidos en `localStorage`.
+
+---
+
+## 🛠️ Tecnologías
+
+* **Frontend:** HTML5, CSS3 (variables personalizadas y temas) y JavaScript ES6+.
+* **Librerías (CDN):** Socket.io Client 4.7.2, FullCalendar 6.1.10, jsPDF 2.5.1 y jsPDF-AutoTable 3.5.31.
+* **Dependencias npm:** `socket.io-client` (ver `package.json`).
+* **Backend requerido:** `aspv-backend` (Node.js/Express), puerto `3000`.
+
+---
+
+## 📂 Estructura del Proyecto
+
+```text
+aspv-frontend/
+├── assets/
+│   └── img/
+│       └── LogoASPV.jpg
+├── css/
+│   └── style.css          # Estilos globales y sistema de temas
+├── js/
+│   ├── admin.js           # Gestión de personal
+│   ├── app.js             # Ajustador: expedientes y documentos
+│   ├── calendario.js      # Calendario de siniestros
+│   ├── chat.js            # Mensajería y Socket.io
+│   ├── login.js           # Autenticación y enrutamiento por rol
+│   ├── muro.js            # Muro global y comentarios
+│   ├── pagos.js           # Nómina y tarifas
+│   └── resumen.js         # Analista: revisión, cierre y PDF
+├── admin.html
+├── calendario.html
+├── chat.html
+├── index.html
+├── login.html
+├── muro.html
+├── pagos.html
+├── resumen.html
+├── package.json
+└── README.md
+```
+
+Los archivos `.html` permanecen en la raíz para conservar las URLs de navegación.
 
 ---
 
 ## ⚙️ Instalación y Configuración Local
 
-### Prerrequisitos
-* Servidor local para archivos estáticos (Ej. extensión Live Server en VSCode o WebStorm).
-* Repositorio del Backend (`aspv-backend`) ejecutándose en el puerto `3000`.
+### Requisitos
+* Servidor estático local (Live Server, WebStorm, `npx serve`, etc.).
+* `aspv-backend` en ejecución en el puerto `3000`.
 
-### Pasos de Instalación
-1. Clona el repositorio del Frontend:
-   ```bash
-   git clone [https://github.com/TU_USUARIO/aspv-frontend.git](https://github.com/TU_USUARIO/aspv-frontend.git)
-
-2. Navega al directorio del proyecto:
-      ```bash
-   cd aspv-frontend
-   
-3. Ejecuta el proyecto abriendo login.html a través de tu servidor local.
-
-## 📂 Estructura del Proyecto (Por el Momento)
-```bash 
-aspv-frontend/
-│
-├── index.html        # Vista y layout de Ajustadores
-├── resumen.html      # Vista y layout del Analista
-├── admin.html        # Vista y layout del Administrador / Gerencia
-├── calendario.html   # Módulo de calendario y agenda visual
-├── login.html        # Módulo de autenticación segura
-├── style.css         # Estilos globales y sistema de temas
-├── app.js            # Lógica y controlador del Ajustador
-├── resumen.js        # Lógica y controlador del Analista
-├── admin.js          # Lógica y controlador del Administrador
-└── imagenes/         # Recursos gráficos y logotipos 
+### Pasos
+```bash
+git clone https://github.com/Mystify-dev/aspv-frontend.git
+cd aspv-frontend
+npm install
 ```
 
-## 🗺️ Próximos Pasos (Roadmap)
-- Optimización de la vista móvil para el módulo del calendario.
+Sirve la carpeta con tu servidor estático y abre `login.html`.
 
-- Implementación de filtros avanzados en la exportación a Excel.
+### URL de la API
+La URL del backend está definida directamente en el código como `http://localhost:3000` (peticiones `fetch` y conexión `io(...)`) dentro de los archivos de `js/` y en `login.html`. Si el backend corre en otro host o puerto, reemplaza esa cadena en esos archivos. No existe un archivo de configuración centralizado.
+
+> `npm install` solo instala `socket.io-client`; las vistas cargan sus librerías desde CDN y requieren conexión a internet.
+
+---
 
 ## 👨‍💻 Autor
-Desarrollado por Hermilo Broca como solución de software para la empresa ASPV.
 
-Este proyecto fue estructurado y desarrollado como parte integral de mis Prácticas Profesionales:
+**Hermilo Broca**
+Ingeniería en Software, Facultad de Matemáticas (FMAT), Universidad Autónoma de Yucatán (UADY).
 
-- Universidad: Universidad Autónoma de Yucatán (UADY)
-
-- Facultad: Facultad de Matemáticas (FMAT)
-
-- Grado: 7mo Semestre
+Solución desarrollada para ASPV como parte de las Prácticas Profesionales.
