@@ -38,7 +38,10 @@ document.getElementById('formLogin').addEventListener('submit', async (e) => {
         const datos = await respuesta.json();
 
         if (respuesta.ok && datos.exito) {
-            // Guardamos el nombre y rol en la memoria del navegador
+            // Guardamos el token, nombre y rol en la memoria del navegador
+            if (datos.token) {
+                localStorage.setItem('token', datos.token);
+            }
             localStorage.setItem('aspv_nombre', datos.usuario.Nombre);
             localStorage.setItem('aspv_rol', datos.usuario.Rol);
             localStorage.setItem('aspv_id', datos.usuario.UsuarioID);

@@ -11,6 +11,20 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
     }
 
+    async function authFetch(url, options = {}) {
+        const headers = {
+            ...(options.headers || {}),
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+        };
+        const res = await fetch(url, { ...options, headers });
+        if (res.status === 401) {
+            localStorage.clear();
+            window.location.href = 'login.html';
+            throw new Error('Sesión expirada');
+        }
+        return res;
+    }
+
     const temaGuardado = localStorage.getItem('aspv_tema');
     const textoGuardado = localStorage.getItem('aspv_texto');
     if (temaGuardado === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
@@ -32,7 +46,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // ---------------------------------------------------------
     // INICIALIZACIÓN DE SOCKET.IO Y ESTADO DEL USUARIO
     // ---------------------------------------------------------
-    const socket = window.socket || io("https://api.aspv.com.mx");
+    const socket = window.socket || io("https://api.aspv.com.mx", { auth: { token: localStorage.getItem('token') } });
 
     let idContactoActual = null; // Para el estado (En línea/Última vez)
     let usuarioDestinoActual = null; // Para saber a quién le enviamos mensajes en la BD
@@ -260,10 +274,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
         try {
             // 1. Pedimos la lista completa de empleados
-            const respuesta = await fetch('https://api.aspv.com.mx/api/usuarios');
+            const respuesta = await authFetch('https://api.aspv.com.mx/api/usuarios');
 
             // 2. Pedimos la lista REAL de tus chats recientes a la BD
-            const respuestaRecientes = await fetch(`https://api.aspv.com.mx/api/chat/recientes/${miUsuarioIdGbl}`);
+            const respuestaRecientes = await authFetch(`https://api.aspv.com.mx/api/chat/recientes/${miUsuarioIdGbl}`);
 
             if (respuesta.ok && respuestaRecientes.ok) {
                 const todosLosUsuarios = await respuesta.json();
@@ -508,7 +522,7 @@ document.addEventListener("DOMContentLoaded", () => {
         contenedorMensajes.innerHTML = '<p style="text-align:center; color:gray; font-size: 0.85em; margin-top: 20px;">Cargando chat seguro...</p>';
 
         try {
-            const res = await fetch(`https://api.aspv.com.mx/api/chat/${miUsuarioIdGbl}/${idDestino}`);
+            const res = await authFetch(`https://api.aspv.com.mx/api/chat/${miUsuarioIdGbl}/${idDestino}`);
             if (res.ok) {
                 const mensajes = await res.json();
                 contenedorMensajes.innerHTML = '';
@@ -664,7 +678,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             try {
                 // Enviamos los datos reales al backend
-                await fetch('https://api.aspv.com.mx/api/chat', {
+                await authFetch('https://api.aspv.com.mx/api/chat', {
                     method: 'POST',
                     body: formData
                 });

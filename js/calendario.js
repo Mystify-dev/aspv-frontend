@@ -19,6 +19,20 @@ function cerrarSesion() {
     window.location.href = 'login.html';
 }
 
+async function authFetch(url, options = {}) {
+    const headers = {
+        ...(options.headers || {}),
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+    };
+    const res = await fetch(url, { ...options, headers });
+    if (res.status === 401) {
+        localStorage.clear();
+        window.location.href = 'login.html';
+        throw new Error('Sesión expirada');
+    }
+    return res;
+}
+
 // ==========================================
 // 1. LÓGICA DEL CALENDARIO
 // ==========================================
@@ -41,7 +55,7 @@ function inicializarCalendario() {
         // Aquí le decimos que vaya a buscar los datos a tu servidor
         events: async function(info, successCallback, failureCallback) {
             try {
-                const respuesta = await fetch('https://api.aspv.com.mx/api/lista-expedientes');
+                const respuesta = await authFetch('https://api.aspv.com.mx/api/lista-expedientes');
                 const expedientes = await respuesta.json();
 
                 // Mapeamos los datos de SQL para que el calendario los entienda

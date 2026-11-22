@@ -33,6 +33,20 @@ if (!rolUsuario) window.location.href = 'login.html';
 document.addEventListener("DOMContentLoaded", () => { document.getElementById('nombreUsuarioUI').innerText = `Hola, ${nombreUsuario}`; });
 function cerrarSesion() { localStorage.clear(); window.location.href = 'login.html'; }
 
+async function authFetch(url, options = {}) {
+    const headers = {
+        ...(options.headers || {}),
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+    };
+    const res = await fetch(url, { ...options, headers });
+    if (res.status === 401) {
+        localStorage.clear();
+        window.location.href = 'login.html';
+        throw new Error('Sesión expirada');
+    }
+    return res;
+}
+
 // ==========================================
 // ACCESIBILIDAD
 // ==========================================
@@ -54,7 +68,7 @@ function cambiarTexto(tamano) { document.documentElement.setAttribute('data-text
 // WEBSOCKETS (SOCKET.IO) - NOTIFICACIONES EN TIEMPO REAL
 // ==========================================
 // 1. Conectarnos al backend en el puerto 3000
-const socket = io("https://api.aspv.com.mx");
+const socket = io("https://api.aspv.com.mx", { auth: { token: localStorage.getItem('token') } });
 
 socket.on("connect", () => {
     console.log("🟢 Conectado al servidor de chat de ASPV");
@@ -105,7 +119,7 @@ document.getElementById('formExpediente').addEventListener('submit', async (e) =
     if (!datosSiniestro.numSiniestro || !datosSiniestro.fechaAccidente) return mostrarToast("Por favor, llena al menos el número de siniestro y la fecha.", "warning");
 
     try {
-        const respuesta = await fetch('https://api.aspv.com.mx/api/ajustes', {
+        const respuesta = await authFetch('https://api.aspv.com.mx/api/ajustes', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -163,7 +177,7 @@ document.getElementById('formDocumentos').addEventListener('submit', async (e) =
         formData.append('tipoDocumento', tipo);
         formData.append('noAplica', noAplica ? 'true' : 'false');
         if (archivo) formData.append('archivo', archivo);
-        try { await fetch('https://api.aspv.com.mx/api/documentos', { method: 'POST', body: formData }); } catch (error) {}
+        try { await authFetch('https://api.aspv.com.mx/api/documentos', { method: 'POST', body: formData }); } catch (error) {}
     };
 
     mostrarToast(`Procesando documentación del expediente ${expedienteActualId}...`, "info");
@@ -186,7 +200,7 @@ document.getElementById('formDocumentos').addEventListener('submit', async (e) =
             formDataFotos.append('noAplica', 'false');
             formDataFotos.append('archivo', foto);
 
-            await fetch('https://api.aspv.com.mx/api/documentos', {
+            await authFetch('https://api.aspv.com.mx/api/documentos', {
                 method: 'POST',
                 body: formDataFotos
             });
@@ -211,7 +225,7 @@ document.getElementById('formDocumentos').addEventListener('submit', async (e) =
 // ==========================================
 async function cargarResumenDashboard() {
     try {
-        const respuesta = await fetch('https://api.aspv.com.mx/api/lista-expedientes');
+        const respuesta = await authFetch('https://api.aspv.com.mx/api/lista-expedientes');
         if (respuesta.ok) {
             const expedientes = await respuesta.json();
             const misExpedientes = expedientes.filter(exp => exp.AjustadorNombre === nombreUsuario);
@@ -225,7 +239,7 @@ cargarResumenDashboard();
 
 async function cargarTablaExpedientes() {
     try {
-        const respuesta = await fetch('https://api.aspv.com.mx/api/lista-expedientes');
+        const respuesta = await authFetch('https://api.aspv.com.mx/api/lista-expedientes');
         if (respuesta.ok) {
             const expedientes = await respuesta.json();
             const misExpedientes = expedientes.filter(exp => exp.AjustadorNombre === nombreUsuario);
@@ -283,8 +297,8 @@ async function verDetalle(ajusteId) {
     modalContenido.innerHTML = '<p style="color: var(--text-muted); text-align: center;">Cargando información...</p>';
 
     try {
-        const resDocs = await fetch(`https://api.aspv.com.mx/api/documentos/${ajusteId}`);
-        const resInfo = await fetch(`https://api.aspv.com.mx/api/ajustes/${ajusteId}`);
+        const resDocs = await authFetch(`https://api.aspv.com.mx/api/documentos/${ajusteId}`);
+        const resInfo = await authFetch(`https://api.aspv.com.mx/api/ajustes/${ajusteId}`);
         let htmlContenido = '';
         let tieneDOA = false, tieneORD = false, tienePM = false;
 
@@ -442,7 +456,7 @@ async function subirDesdeModal(ajusteId) {
         if (!archivo && !noAplica) return;
         const formData = new FormData(); formData.append('expedienteId', ajusteId); formData.append('tipoDocumento', tipo); formData.append('noAplica', noAplica ? 'true' : 'false');
         if (archivo) formData.append('archivo', archivo);
-        await fetch('https://api.aspv.com.mx/api/documentos', { method: 'POST', body: formData });
+        await authFetch('https://api.aspv.com.mx/api/documentos', { method: 'POST', body: formData });
     };
 
     mostrarToast("Procesando expediente...", "info");
@@ -489,10 +503,10 @@ async function enviarRespuestaAjustador(ajusteId) {
                 if (!item.archivo && !item.noAplica) continue;
                 const formData = new FormData(); formData.append('expedienteId', ajusteId); formData.append('tipoDocumento', item.tipo); formData.append('noAplica', item.noAplica ? 'true' : 'false');
                 if (item.archivo) formData.append('archivo', item.archivo);
-                await fetch('https://api.aspv.com.mx/api/documentos', { method: 'POST', body: formData });
+                await authFetch('https://api.aspv.com.mx/api/documentos', { method: 'POST', body: formData });
             }
         }
-        const res = await fetch(`https://api.aspv.com.mx/api/ajustes/${ajusteId}/respuesta-ajustador`, {
+        const res = await authFetch(`https://api.aspv.com.mx/api/ajustes/${ajusteId}/respuesta-ajustador`, {
             method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nuevoMensaje: mensaje, remitente: nombreUsuario })
         });
         if (res.ok) {
@@ -509,7 +523,7 @@ async function revisarNotificaciones() {
     const rol = localStorage.getItem('aspv_rol');
     if (!rol) return;
     try {
-        const res = await fetch(`https://api.aspv.com.mx/api/notificaciones/${rol}/${miUsuarioIdGbl || 0}`);
+        const res = await authFetch(`https://api.aspv.com.mx/api/notificaciones/${rol}/${miUsuarioIdGbl || 0}`);
         if (res.ok) {
             const datos = await res.json();
             const badge = document.getElementById('badgeNotificaciones'); const listaUI = document.getElementById('listaNotificacionesUI');
@@ -532,7 +546,7 @@ async function revisarNotificaciones() {
 async function descargarMiExcel() {
     try {
         mostrarToast("⏳ Generando tu historial...", "info");
-        const res = await fetch(`https://api.aspv.com.mx/api/exportar-excel/ajustador/${miUsuarioIdGbl}`);
+        const res = await authFetch(`https://api.aspv.com.mx/api/exportar-excel/ajustador/${miUsuarioIdGbl}`);
         if (res.ok) {
             const blob = await res.blob(); const url = window.URL.createObjectURL(blob);
             const a = document.createElement("a"); a.href = url; a.download = `Mis_Siniestros_${new Date().toLocaleDateString('es-MX')}.xlsx`;
@@ -545,7 +559,7 @@ async function descargarMiExcel() {
 async function cargarDatosPerfil() {
     if (!miUsuarioIdGbl) return;
     try {
-        const res = await fetch(`https://api.aspv.com.mx/api/perfil/${miUsuarioIdGbl}`);
+        const res = await authFetch(`https://api.aspv.com.mx/api/perfil/${miUsuarioIdGbl}`);
         if (res.ok) {
             const perfil = await res.json();
             const avatarUrl = perfil.FotoPerfil ? `https://api.aspv.com.mx/${perfil.FotoPerfil}` : 'assets/img/LogoASPV.jpg';
@@ -579,7 +593,7 @@ if (formPerfil) {
         const foto = document.getElementById('inputFotoPerfil').files[0];
         if (foto) formData.append('fotoPerfil', foto);
         try {
-            const res = await fetch(`https://api.aspv.com.mx/api/perfil/${miUsuarioIdGbl}`, { method: 'POST', body: formData });
+            const res = await authFetch(`https://api.aspv.com.mx/api/perfil/${miUsuarioIdGbl}`, { method: 'POST', body: formData });
             if (res.ok) { mostrarToast("✅ Perfil guardado.", "success"); cargarDatosPerfil(); cerrarModalPerfil(); }
         } catch (error) {}
     });
@@ -591,7 +605,7 @@ document.addEventListener("DOMContentLoaded", () => {
         marcarBtn.addEventListener('click', async () => {
             const rol = localStorage.getItem('aspv_rol');
             try {
-                await fetch(`https://api.aspv.com.mx/api/notificaciones/leidas/${rol}/${miUsuarioIdGbl || 0}`, { method: 'PUT' });
+                await authFetch(`https://api.aspv.com.mx/api/notificaciones/leidas/${rol}/${miUsuarioIdGbl || 0}`, { method: 'PUT' });
                 document.getElementById('badgeNotificaciones').style.display = 'none';
                 document.getElementById('listaNotificacionesUI').innerHTML = `<li style="padding: 15px; text-align: center; color: var(--text-muted); font-size: 0.9em;">No tienes notificaciones nuevas</li>`;
             } catch(e) {}
@@ -607,7 +621,7 @@ document.addEventListener("DOMContentLoaded", () => {
 // ==========================================
 async function descargarArchivosMasivo(ajusteId) {
     try {
-        const resDocs = await fetch(`https://api.aspv.com.mx/api/documentos/${ajusteId}`);
+        const resDocs = await authFetch(`https://api.aspv.com.mx/api/documentos/${ajusteId}`);
         if (!resDocs.ok) return;
 
         const data = await resDocs.json();
@@ -621,6 +635,7 @@ async function descargarArchivosMasivo(ajusteId) {
             try {
                 const url = `https://api.aspv.com.mx/${doc.RutaArchivo.replace(/\\/g, '/')}`;
                 const res = await fetch(url);
+                if (res.status === 401) { localStorage.clear(); window.location.href = 'login.html'; return; }
                 if (!res.ok) throw new Error("No se pudo obtener");
 
                 const blob = await res.blob();

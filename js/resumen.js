@@ -27,6 +27,20 @@ function cerrarSesion() {
     window.location.href = 'login.html';
 }
 
+async function authFetch(url, options = {}) {
+    const headers = {
+        ...(options.headers || {}),
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+    };
+    const res = await fetch(url, { ...options, headers });
+    if (res.status === 401) {
+        localStorage.clear();
+        window.location.href = 'login.html';
+        throw new Error('Sesión expirada');
+    }
+    return res;
+}
+
 // ==========================================
 // ACCESIBILIDAD Y MEMORIA DE PREFERENCIAS
 // ==========================================
@@ -65,13 +79,13 @@ function cambiarTexto(tamano) {
 
 async function cargarDashboardAdmin() {
     try {
-        const respuesta = await fetch('https://api.aspv.com.mx/api/dashboard/resumen');
+        const respuesta = await authFetch('https://api.aspv.com.mx/api/dashboard/resumen');
         if (respuesta.ok) {
             const datos = await respuesta.json();
             document.getElementById('kpiActivos').innerText = datos.expedientesActivos;
             document.getElementById('kpiDocs').innerText = datos.documentosPendientes;
         }
-        const resTabla = await fetch('https://api.aspv.com.mx/api/lista-expedientes');
+        const resTabla = await authFetch('https://api.aspv.com.mx/api/lista-expedientes');
         if (resTabla.ok) {
             const expedientes = await resTabla.json();
             document.getElementById('kpiConcluidos').innerText = expedientes.filter(exp => exp.Estado === 'Concluido').length;
@@ -81,7 +95,7 @@ async function cargarDashboardAdmin() {
 
 async function cargarTablaAdmin() {
     try {
-        const respuesta = await fetch('https://api.aspv.com.mx/api/lista-expedientes');
+        const respuesta = await authFetch('https://api.aspv.com.mx/api/lista-expedientes');
         if (respuesta.ok) {
             const expedientes = await respuesta.json();
             const contenedor = document.getElementById('contenedorTablasSiniestros');
@@ -176,8 +190,8 @@ async function evaluarExpediente(ajusteId, borradorTexto = '') {
     modalContenido.innerHTML = '<p style="text-align: center;">Cargando expediente...</p>';
 
     try {
-        const resDocs = await fetch(`https://api.aspv.com.mx/api/documentos/${ajusteId}`);
-        const resInfo = await fetch(`https://api.aspv.com.mx/api/ajustes/${ajusteId}`);
+        const resDocs = await authFetch(`https://api.aspv.com.mx/api/documentos/${ajusteId}`);
+        const resInfo = await authFetch(`https://api.aspv.com.mx/api/ajustes/${ajusteId}`);
 
         let htmlContenido = '';
         let esConcluido = false;
@@ -366,6 +380,7 @@ async function descargarArchivosMasivo(urls) {
     for (let url of urls) {
         try {
             const res = await fetch(url);
+            if (res.status === 401) { localStorage.clear(); window.location.href = 'login.html'; return; }
             if (!res.ok) throw new Error("No se pudo obtener el archivo");
 
             const blob = await res.blob();
@@ -398,7 +413,7 @@ async function guardarEstadoAdmin(ajusteId) {
     const comentario = comentarioObj ? comentarioObj.value.trim() : null;
 
     try {
-        const respuesta = await fetch(`https://api.aspv.com.mx/api/ajustes/${ajusteId}/estado`, {
+        const respuesta = await authFetch(`https://api.aspv.com.mx/api/ajustes/${ajusteId}/estado`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ nuevoEstado: nuevoEstado, respuestaAnalista: comentario, remitente: nombreUsuario })
@@ -420,8 +435,8 @@ async function guardarEstadoAdmin(ajusteId) {
 
 async function generarReportePDF(ajusteId) {
     try {
-        const resInfo = await fetch(`https://api.aspv.com.mx/api/ajustes/${ajusteId}`);
-        const resDocs = await fetch(`https://api.aspv.com.mx/api/documentos/${ajusteId}`);
+        const resInfo = await authFetch(`https://api.aspv.com.mx/api/ajustes/${ajusteId}`);
+        const resDocs = await authFetch(`https://api.aspv.com.mx/api/documentos/${ajusteId}`);
         const info = await resInfo.json();
         let datosDocs = { documentos: [] };
         if (resDocs.ok) datosDocs = await resDocs.json();
@@ -499,7 +514,7 @@ async function confirmarAccion() {
         const textarea = document.getElementById('textoRespuestaAdmin');
         const textoGuardado = textarea ? textarea.value : '';
         try {
-            const res = await fetch(`https://api.aspv.com.mx/api/documentos/rechazar/${idObjetivo}/${datoExtra}`, { method: 'DELETE' });
+            const res = await authFetch(`https://api.aspv.com.mx/api/documentos/rechazar/${idObjetivo}/${datoExtra}`, { method: 'DELETE' });
             if(res.ok) {
                 mostrarToast(`Documento ${datoExtra} rechazado.`, "success");
                 evaluarExpediente(idObjetivo, textoGuardado);
@@ -514,7 +529,7 @@ async function revisarNotificaciones() {
     const idUsuario = localStorage.getItem('aspv_id') || 0;
     if (!rol) return;
     try {
-        const res = await fetch(`https://api.aspv.com.mx/api/notificaciones/${rol}/${idUsuario}`);
+        const res = await authFetch(`https://api.aspv.com.mx/api/notificaciones/${rol}/${idUsuario}`);
         if (res.ok) {
             const datos = await res.json();
             const badge = document.getElementById('badgeNotificaciones');
@@ -545,7 +560,7 @@ async function exportarExcel() {
     try {
         mostrarToast("⏳ Generando archivo Excel con diseño...", "info");
 
-        const res = await fetch('https://api.aspv.com.mx/api/exportar-excel');
+        const res = await authFetch('https://api.aspv.com.mx/api/exportar-excel');
 
         if (res.ok) {
             const blob = await res.blob();
@@ -580,7 +595,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const rol = localStorage.getItem('aspv_rol');
             const idUsuario = localStorage.getItem('aspv_id') || 0;
             try {
-                await fetch(`https://api.aspv.com.mx/api/notificaciones/leidas/${rol}/${idUsuario}`, { method: 'PUT' });
+                await authFetch(`https://api.aspv.com.mx/api/notificaciones/leidas/${rol}/${idUsuario}`, { method: 'PUT' });
                 document.getElementById('badgeNotificaciones').style.display = 'none';
                 document.getElementById('listaNotificacionesUI').innerHTML = `<li style="padding: 15px; text-align: center; color: var(--text-muted); font-size: 0.9em;">No tienes notificaciones nuevas</li>`;
             } catch(e) {}
@@ -599,7 +614,7 @@ const miUsuarioIdGbl = localStorage.getItem('aspv_id');
 async function cargarDatosPerfil() {
     if (!miUsuarioIdGbl) return;
     try {
-        const res = await fetch(`https://api.aspv.com.mx/api/perfil/${miUsuarioIdGbl}`);
+        const res = await authFetch(`https://api.aspv.com.mx/api/perfil/${miUsuarioIdGbl}`);
         if (res.ok) {
             const perfil = await res.json();
 
@@ -657,7 +672,7 @@ if (formPerfil) {
         if (foto) formData.append('fotoPerfil', foto);
 
         try {
-            const res = await fetch(`https://api.aspv.com.mx/api/perfil/${miUsuarioIdGbl}`, {
+            const res = await authFetch(`https://api.aspv.com.mx/api/perfil/${miUsuarioIdGbl}`, {
                 method: 'POST',
                 body: formData
             });

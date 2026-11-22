@@ -198,6 +198,9 @@
             const data = await respuesta.json();
 
             if (data.exito) {
+                if (data.token) {
+                    localStorage.setItem('token', data.token);
+                }
                 usuarioPendienteGlobal = data.usuario;
 
                 // Validamos si ya firmó la versión actual
@@ -220,12 +223,21 @@
         try {
             const respuesta = await fetch('https://api.aspv.com.mx/api/aceptar-terminos', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
                 body: JSON.stringify({
                     usuarioId: usuarioPendienteGlobal.UsuarioID,
                     version: VERSION_ACTUAL_TERMINOS
                 })
             });
+
+            if (respuesta.status === 401) {
+                localStorage.clear();
+                window.location.href = 'login.html';
+                return;
+            }
 
             const data = await respuesta.json();
 

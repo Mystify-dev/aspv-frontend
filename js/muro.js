@@ -13,6 +13,20 @@ function cerrarSesion() {
     window.location.href = 'login.html';
 }
 
+async function authFetch(url, options = {}) {
+    const headers = {
+        ...(options.headers || {}),
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+    };
+    const res = await fetch(url, { ...options, headers });
+    if (res.status === 401) {
+        localStorage.clear();
+        window.location.href = 'login.html';
+        throw new Error('Sesión expirada');
+    }
+    return res;
+}
+
 function cambiarTema(tema) {
     document.documentElement.setAttribute('data-theme', tema === 'dark' ? 'dark' : '');
     localStorage.setItem('aspv_tema', tema);
@@ -41,7 +55,7 @@ async function cargarMuro() {
     const contenedor = document.getElementById('feedSiniestros');
 
     try {
-        const respuesta = await fetch('https://api.aspv.com.mx/api/lista-expedientes');
+        const respuesta = await authFetch('https://api.aspv.com.mx/api/lista-expedientes');
         if (!respuesta.ok) throw new Error("Error de red");
 
         let expedientes = await respuesta.json();
@@ -134,7 +148,7 @@ async function cargarMuro() {
 async function cargarArchivosPost(folio) {
     const contenedor = document.getElementById(`archivos-muro-${folio}`);
     try {
-        const res = await fetch(`https://api.aspv.com.mx/api/documentos/${folio}`);
+        const res = await authFetch(`https://api.aspv.com.mx/api/documentos/${folio}`);
         if(res.ok) {
             const data = await res.json();
             let html = '';
@@ -197,7 +211,7 @@ async function cargarArchivosPost(folio) {
 async function cargarComentariosPost(folio) {
     const contenedor = document.getElementById(`comentarios-muro-${folio}`);
     try {
-        const res = await fetch(`https://api.aspv.com.mx/api/comentarios-muro/${folio}`);
+        const res = await authFetch(`https://api.aspv.com.mx/api/comentarios-muro/${folio}`);
         if (res.ok) {
             const comentarios = await res.json();
             let html = '';
@@ -251,7 +265,7 @@ async function enviarComentarioMuro(folio) {
     if(!mensaje) return;
 
     try {
-        const res = await fetch(`https://api.aspv.com.mx/api/comentarios-muro/${folio}`, {
+        const res = await authFetch(`https://api.aspv.com.mx/api/comentarios-muro/${folio}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ autor: nombreUsuario, mensaje: mensaje })
@@ -294,7 +308,7 @@ function mostrarToast(mensaje, tipo = 'info') {
 // ==========================================
 async function descargarArchivosMasivo(ajusteId) {
     try {
-        const resDocs = await fetch(`https://api.aspv.com.mx/api/documentos/${ajusteId}`);
+        const resDocs = await authFetch(`https://api.aspv.com.mx/api/documentos/${ajusteId}`);
         if (!resDocs.ok) return;
 
         const data = await resDocs.json();
@@ -308,6 +322,7 @@ async function descargarArchivosMasivo(ajusteId) {
             try {
                 const url = `https://api.aspv.com.mx/${doc.RutaArchivo.replace(/\\/g, '/')}`;
                 const res = await fetch(url);
+                if (res.status === 401) { localStorage.clear(); window.location.href = 'login.html'; return; }
                 if (!res.ok) throw new Error("No se pudo obtener");
 
                 const blob = await res.blob();
@@ -339,7 +354,7 @@ async function descargarArchivosMasivo(ajusteId) {
 async function cargarDatosPerfil() {
     if (!miUsuarioIdGbl) return;
     try {
-        const res = await fetch(`https://api.aspv.com.mx/api/perfil/${miUsuarioIdGbl}`);
+        const res = await authFetch(`https://api.aspv.com.mx/api/perfil/${miUsuarioIdGbl}`);
         if (res.ok) {
             const perfil = await res.json();
             const avatarUrl = perfil.FotoPerfil ? `https://api.aspv.com.mx/${perfil.FotoPerfil}` : 'assets/img/LogoASPV.jpg';
@@ -390,7 +405,7 @@ if (formPerfil) {
         if (foto) formData.append('fotoPerfil', foto);
 
         try {
-            const res = await fetch(`https://api.aspv.com.mx/api/perfil/${miUsuarioIdGbl}`, { method: 'POST', body: formData });
+            const res = await authFetch(`https://api.aspv.com.mx/api/perfil/${miUsuarioIdGbl}`, { method: 'POST', body: formData });
             if (res.ok) {
                 cargarDatosPerfil();
                 cerrarModalPerfil();
