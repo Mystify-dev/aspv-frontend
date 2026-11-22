@@ -112,8 +112,8 @@ function cambiarTexto(tamano) {
 async function descargarDatosDesdeBD() {
     try {
         const [resUsuarios, resExpedientes] = await Promise.all([
-            fetch('http://localhost:3000/api/usuarios'),
-            fetch('http://localhost:3000/api/lista-expedientes')
+            fetch('https://api.aspv.com.mx/api/usuarios'),
+            fetch('https://api.aspv.com.mx/api/lista-expedientes')
         ]);
 
         if (resUsuarios.ok) baseUsuarios = await resUsuarios.json();
@@ -443,7 +443,7 @@ if (formEditarNomina) {
         };
 
         try {
-            const res = await fetch(`http://localhost:3000/api/usuarios/${id}/nomina`, {
+            const res = await fetch(`https://api.aspv.com.mx/api/usuarios/${id}/nomina`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -474,8 +474,8 @@ async function abrirModalPagos(ajusteId, folioPersonal) {
     modalContenido.innerHTML = '<p style="text-align: center;">Cargando auditoría de documentos...</p>';
 
     try {
-        const resDocs = await fetch(`http://localhost:3000/api/documentos/${ajusteId}`);
-        const resInfo = await fetch(`http://localhost:3000/api/ajustes/${ajusteId}`);
+        const resDocs = await fetch(`https://api.aspv.com.mx/api/documentos/${ajusteId}`);
+        const resInfo = await fetch(`https://api.aspv.com.mx/api/ajustes/${ajusteId}`);
 
         let htmlContenido = '';
 
@@ -553,7 +553,7 @@ async function abrirModalPagos(ajusteId, folioPersonal) {
 
                 fotos.forEach(foto => {
                     const rutaWeb = foto.RutaArchivo.replace(/\\/g, '/');
-                    const urlCompleta = `http://localhost:3000/${rutaWeb}`;
+                    const urlCompleta = `https://api.aspv.com.mx/${rutaWeb}`;
                     const dispFoto = (foto.Dispositivo && foto.Dispositivo !== 'Sin datos EXIF') ? foto.Dispositivo : 'Sin EXIF';
 
                     htmlContenido += `
@@ -621,7 +621,7 @@ async function exportarExcel() {
         mostrarToast("⏳ Descargando reporte global...", "info");
         const mes = document.getElementById('filtroMes').value;
         const quincena = document.getElementById('filtroQuincena').value;
-        const res = await fetch(`http://localhost:3000/api/exportar-excel?mes=${mes}&quincena=${quincena}`);
+        const res = await fetch(`https://api.aspv.com.mx/api/exportar-excel?mes=${mes}&quincena=${quincena}`);
 
         if (res.ok) {
             const blob = await res.blob();
@@ -655,10 +655,10 @@ const miUsuarioIdGbl = localStorage.getItem('aspv_id');
 async function cargarDatosPerfil() {
     if (!miUsuarioIdGbl) return;
     try {
-        const res = await fetch(`http://localhost:3000/api/perfil/${miUsuarioIdGbl}`);
+        const res = await fetch(`https://api.aspv.com.mx/api/perfil/${miUsuarioIdGbl}`);
         if (res.ok) {
             const perfil = await res.json();
-            const avatarUrl = perfil.FotoPerfil ? `http://localhost:3000/${perfil.FotoPerfil}` : 'assets/img/LogoASPV.jpg';
+            const avatarUrl = perfil.FotoPerfil ? `https://api.aspv.com.mx/${perfil.FotoPerfil}` : 'assets/img/LogoASPV.jpg';
             const avatarHeader = document.getElementById('avatarHeader');
             if (avatarHeader) avatarHeader.src = avatarUrl;
             const previewFoto = document.getElementById('previewFotoPerfil');
@@ -702,7 +702,7 @@ if (formPerfil) {
         const foto = document.getElementById('inputFotoPerfil').files[0];
         if (foto) formData.append('fotoPerfil', foto);
         try {
-            const res = await fetch(`http://localhost:3000/api/perfil/${miUsuarioIdGbl}`, { method: 'POST', body: formData });
+            const res = await fetch(`https://api.aspv.com.mx/api/perfil/${miUsuarioIdGbl}`, { method: 'POST', body: formData });
             if (res.ok) {
                 mostrarToast("✅ Perfil actualizado.", "success");
                 cargarDatosPerfil();
@@ -716,7 +716,7 @@ document.addEventListener("DOMContentLoaded", () => { cargarDatosPerfil(); });
 
 async function descargarArchivosMasivo(ajusteId) {
     try {
-        const resDocs = await fetch(`http://localhost:3000/api/documentos/${ajusteId}`);
+        const resDocs = await fetch(`https://api.aspv.com.mx/api/documentos/${ajusteId}`);
         if (!resDocs.ok) return;
         const data = await resDocs.json();
         const archivosValidos = data.documentos.filter(d => d.RutaArchivo !== 'NO_REQUERIDO');
@@ -724,7 +724,7 @@ async function descargarArchivosMasivo(ajusteId) {
         mostrarToast(`⏳ Descargando ${archivosValidos.length} archivo(s)...`, "info");
         for (let doc of archivosValidos) {
             try {
-                const url = `http://localhost:3000/${doc.RutaArchivo.replace(/\\/g, '/')}`;
+                const url = `https://api.aspv.com.mx/${doc.RutaArchivo.replace(/\\/g, '/')}`;
                 const res = await fetch(url);
                 if (!res.ok) throw new Error("No se pudo obtener");
                 const blob = await res.blob();

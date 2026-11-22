@@ -56,7 +56,7 @@ function cambiarTexto(tamano) {
 
 async function cargarMetricas() {
     try {
-        const res = await fetch('http://localhost:3000/api/dashboard/gerencia');
+        const res = await fetch('https://api.aspv.com.mx/api/dashboard/gerencia');
         if (res.ok) {
             const datos = await res.json();
             document.getElementById('kpiDia').innerText = datos.dia;
@@ -72,7 +72,7 @@ let cacheUsuariosAdmin = [];
 
 async function cargarPersonal() {
     try {
-        const res = await fetch('http://localhost:3000/api/usuarios');
+        const res = await fetch('https://api.aspv.com.mx/api/usuarios');
         if (res.ok) {
             cacheUsuariosAdmin = await res.json();
 
@@ -135,7 +135,7 @@ if (formNuevoUsuario) {
         };
 
         try {
-            const res = await fetch('http://localhost:3000/api/usuarios', {
+            const res = await fetch('https://api.aspv.com.mx/api/usuarios', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -192,7 +192,7 @@ if (formEditarUsuario) {
         };
 
         try {
-            const res = await fetch(`http://localhost:3000/api/usuarios/${id}`, {
+            const res = await fetch(`https://api.aspv.com.mx/api/usuarios/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -238,7 +238,7 @@ async function confirmarAccion() {
 
     if (accionPendiente === 'eliminar') {
         try {
-            const res = await fetch(`http://localhost:3000/api/usuarios/${idObjetivo}`, { method: 'DELETE' });
+            const res = await fetch(`https://api.aspv.com.mx/api/usuarios/${idObjetivo}`, { method: 'DELETE' });
             if (res.ok) {
                 mostrarToast(`Empleado ${datoExtra} eliminado.`, "success");
                 cargarPersonal();
@@ -255,7 +255,7 @@ async function revisarNotificaciones() {
     if (!rol) return;
 
     try {
-        const res = await fetch(`http://localhost:3000/api/notificaciones/${rol}/${idUsuario}`);
+        const res = await fetch(`https://api.aspv.com.mx/api/notificaciones/${rol}/${idUsuario}`);
         if (res.ok) {
             const datos = await res.json();
             const badge = document.getElementById('badgeNotificaciones');
@@ -293,7 +293,7 @@ async function revisarNotificaciones() {
 // ==========================================
 // SOCKET.IO: INTEGRACIÓN DE ESTADOS EN TIEMPO REAL
 // ==========================================
-const socket = io("http://localhost:3000");
+const socket = io("https://api.aspv.com.mx");
 
 socket.on("connect", () => {
     if (miUsuarioIdGbl) {
@@ -334,7 +334,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const rol = localStorage.getItem('aspv_rol');
             const idUsuario = localStorage.getItem('aspv_id') || 0;
             try {
-                await fetch(`http://localhost:3000/api/notificaciones/leidas/${rol}/${idUsuario}`, { method: 'PUT' });
+                await fetch(`https://api.aspv.com.mx/api/notificaciones/leidas/${rol}/${idUsuario}`, { method: 'PUT' });
                 document.getElementById('badgeNotificaciones').style.display = 'none';
                 document.getElementById('listaNotificacionesUI').innerHTML = `<li style="padding: 15px; text-align: center; color: var(--text-muted); font-size: 0.9em;">No tienes notificaciones nuevas</li>`;
             } catch(e) {}
@@ -352,10 +352,10 @@ document.addEventListener("DOMContentLoaded", () => {
 async function cargarDatosPerfil() {
     if (!miUsuarioIdGbl) return;
     try {
-        const res = await fetch(`http://localhost:3000/api/perfil/${miUsuarioIdGbl}`);
+        const res = await fetch(`https://api.aspv.com.mx/api/perfil/${miUsuarioIdGbl}`);
         if (res.ok) {
             const perfil = await res.json();
-            const avatarUrl = perfil.FotoPerfil ? `http://localhost:3000/${perfil.FotoPerfil}` : 'assets/img/LogoASPV.jpg';
+            const avatarUrl = perfil.FotoPerfil ? `https://api.aspv.com.mx/${perfil.FotoPerfil}` : 'assets/img/LogoASPV.jpg';
             const avatarHeader = document.getElementById('avatarHeader');
             if (avatarHeader) avatarHeader.src = avatarUrl;
             const previewFoto = document.getElementById('previewFotoPerfil');
@@ -400,7 +400,7 @@ if (formPerfil) {
         if (foto) formData.append('fotoPerfil', foto);
 
         try {
-            const res = await fetch(`http://localhost:3000/api/perfil/${miUsuarioIdGbl}`, {
+            const res = await fetch(`https://api.aspv.com.mx/api/perfil/${miUsuarioIdGbl}`, {
                 method: 'POST',
                 body: formData
             });

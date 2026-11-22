@@ -94,7 +94,7 @@ npm install
 Sirve la carpeta con tu servidor estático y abre `login.html`.
 
 ### URL de la API
-La URL del backend está definida directamente en el código como `http://localhost:3000` (peticiones `fetch` y conexión `io(...)`) dentro de los archivos de `js/` y en `login.html`. Si el backend corre en otro host o puerto, reemplaza esa cadena en esos archivos. No existe un archivo de configuración centralizado.
+La URL del backend está definida directamente en el código como `https://api.aspv.com.mx` (peticiones `fetch`, rutas de archivos y conexión `io(...)`) dentro de los archivos de `js/` y en `login.html`. Para apuntar a un servidor local (por ejemplo, `http://localhost:3000`) u otro host, reemplaza esa cadena en esos archivos. No existe un archivo de configuración centralizado.
 
 > `npm install` solo instala `socket.io-client`; las vistas cargan sus librerías desde CDN y requieren conexión a internet.
 

@@ -41,7 +41,7 @@ async function cargarMuro() {
     const contenedor = document.getElementById('feedSiniestros');
 
     try {
-        const respuesta = await fetch('http://localhost:3000/api/lista-expedientes');
+        const respuesta = await fetch('https://api.aspv.com.mx/api/lista-expedientes');
         if (!respuesta.ok) throw new Error("Error de red");
 
         let expedientes = await respuesta.json();
@@ -59,7 +59,7 @@ async function cargarMuro() {
             // 1. EVALUAR FOTO DEL AUTOR DEL POST
             let htmlAvatarAjustador = '';
             if (exp.AjustadorFoto) {
-                htmlAvatarAjustador = `<img src="http://localhost:3000/${exp.AjustadorFoto}" style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border-color); flex-shrink: 0;">`;
+                htmlAvatarAjustador = `<img src="https://api.aspv.com.mx/${exp.AjustadorFoto}" style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border-color); flex-shrink: 0;">`;
             } else {
                 const inicial = autor.charAt(0).toUpperCase();
                 const colorFondo = obtenerColorPorNombre(autor);
@@ -134,7 +134,7 @@ async function cargarMuro() {
 async function cargarArchivosPost(folio) {
     const contenedor = document.getElementById(`archivos-muro-${folio}`);
     try {
-        const res = await fetch(`http://localhost:3000/api/documentos/${folio}`);
+        const res = await fetch(`https://api.aspv.com.mx/api/documentos/${folio}`);
         if(res.ok) {
             const data = await res.json();
             let html = '';
@@ -146,7 +146,7 @@ async function cargarArchivosPost(folio) {
 
             docsFiltro.forEach(doc => {
                 cantArchivos++;
-                const url = `http://localhost:3000/${doc.RutaArchivo.replace(/\\/g, '/')}`;
+                const url = `https://api.aspv.com.mx/${doc.RutaArchivo.replace(/\\/g, '/')}`;
 
                 // 1. Si es PDF oficial (DOA, ORD, PM), lo dejamos como botón
                 if (['DOA', 'ORD', 'PM'].includes(doc.TipoDocumento)) {
@@ -197,7 +197,7 @@ async function cargarArchivosPost(folio) {
 async function cargarComentariosPost(folio) {
     const contenedor = document.getElementById(`comentarios-muro-${folio}`);
     try {
-        const res = await fetch(`http://localhost:3000/api/comentarios-muro/${folio}`);
+        const res = await fetch(`https://api.aspv.com.mx/api/comentarios-muro/${folio}`);
         if (res.ok) {
             const comentarios = await res.json();
             let html = '';
@@ -208,7 +208,7 @@ async function cargarComentariosPost(folio) {
                 // 2. EVALUAR FOTO DE QUIEN COMENTA
                 let htmlAvatarComentario = '';
                 if (c.FotoPerfil) {
-                    htmlAvatarComentario = `<img src="http://localhost:3000/${c.FotoPerfil}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border-color); flex-shrink: 0; align-self: flex-start; margin-top: 2px;">`;
+                    htmlAvatarComentario = `<img src="https://api.aspv.com.mx/${c.FotoPerfil}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border-color); flex-shrink: 0; align-self: flex-start; margin-top: 2px;">`;
                 } else {
                     const inicial = c.Autor.charAt(0).toUpperCase();
                     const colorFondo = obtenerColorPorNombre(c.Autor);
@@ -251,7 +251,7 @@ async function enviarComentarioMuro(folio) {
     if(!mensaje) return;
 
     try {
-        const res = await fetch(`http://localhost:3000/api/comentarios-muro/${folio}`, {
+        const res = await fetch(`https://api.aspv.com.mx/api/comentarios-muro/${folio}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ autor: nombreUsuario, mensaje: mensaje })
@@ -294,7 +294,7 @@ function mostrarToast(mensaje, tipo = 'info') {
 // ==========================================
 async function descargarArchivosMasivo(ajusteId) {
     try {
-        const resDocs = await fetch(`http://localhost:3000/api/documentos/${ajusteId}`);
+        const resDocs = await fetch(`https://api.aspv.com.mx/api/documentos/${ajusteId}`);
         if (!resDocs.ok) return;
 
         const data = await resDocs.json();
@@ -306,7 +306,7 @@ async function descargarArchivosMasivo(ajusteId) {
 
         for (let doc of archivosValidos) {
             try {
-                const url = `http://localhost:3000/${doc.RutaArchivo.replace(/\\/g, '/')}`;
+                const url = `https://api.aspv.com.mx/${doc.RutaArchivo.replace(/\\/g, '/')}`;
                 const res = await fetch(url);
                 if (!res.ok) throw new Error("No se pudo obtener");
 
@@ -339,10 +339,10 @@ async function descargarArchivosMasivo(ajusteId) {
 async function cargarDatosPerfil() {
     if (!miUsuarioIdGbl) return;
     try {
-        const res = await fetch(`http://localhost:3000/api/perfil/${miUsuarioIdGbl}`);
+        const res = await fetch(`https://api.aspv.com.mx/api/perfil/${miUsuarioIdGbl}`);
         if (res.ok) {
             const perfil = await res.json();
-            const avatarUrl = perfil.FotoPerfil ? `http://localhost:3000/${perfil.FotoPerfil}` : 'assets/img/LogoASPV.jpg';
+            const avatarUrl = perfil.FotoPerfil ? `https://api.aspv.com.mx/${perfil.FotoPerfil}` : 'assets/img/LogoASPV.jpg';
 
             const avatarHeader = document.getElementById('avatarHeader');
             if (avatarHeader) avatarHeader.src = avatarUrl;
@@ -390,7 +390,7 @@ if (formPerfil) {
         if (foto) formData.append('fotoPerfil', foto);
 
         try {
-            const res = await fetch(`http://localhost:3000/api/perfil/${miUsuarioIdGbl}`, { method: 'POST', body: formData });
+            const res = await fetch(`https://api.aspv.com.mx/api/perfil/${miUsuarioIdGbl}`, { method: 'POST', body: formData });
             if (res.ok) {
                 cargarDatosPerfil();
                 cerrarModalPerfil();

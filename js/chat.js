@@ -32,7 +32,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // ---------------------------------------------------------
     // INICIALIZACIÓN DE SOCKET.IO Y ESTADO DEL USUARIO
     // ---------------------------------------------------------
-    const socket = window.socket || io("http://localhost:3000");
+    const socket = window.socket || io("https://api.aspv.com.mx");
 
     let idContactoActual = null; // Para el estado (En línea/Última vez)
     let usuarioDestinoActual = null; // Para saber a quién le enviamos mensajes en la BD
@@ -260,10 +260,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
         try {
             // 1. Pedimos la lista completa de empleados
-            const respuesta = await fetch('http://localhost:3000/api/usuarios');
+            const respuesta = await fetch('https://api.aspv.com.mx/api/usuarios');
 
             // 2. Pedimos la lista REAL de tus chats recientes a la BD
-            const respuestaRecientes = await fetch(`http://localhost:3000/api/chat/recientes/${miUsuarioIdGbl}`);
+            const respuestaRecientes = await fetch(`https://api.aspv.com.mx/api/chat/recientes/${miUsuarioIdGbl}`);
 
             if (respuesta.ok && respuestaRecientes.ok) {
                 const todosLosUsuarios = await respuesta.json();
@@ -275,7 +275,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     const imgEl = document.getElementById('miFotoImg');
                     const iniEl = document.getElementById('miInicialSesion');
                     if (imgEl && iniEl) {
-                        imgEl.src = `http://localhost:3000/${miInfo.FotoPerfil}`;
+                        imgEl.src = `https://api.aspv.com.mx/${miInfo.FotoPerfil}`;
                         imgEl.style.display = 'block';
                         iniEl.style.display = 'none';
                         document.getElementById('miFotoImg').parentElement.style.background = 'transparent';
@@ -367,7 +367,7 @@ document.addEventListener("DOMContentLoaded", () => {
             // Evaluamos si el usuario tiene foto en la base de datos
             let avatarInternoHTML = '';
             if (u.FotoPerfil && u.FotoPerfil !== '') {
-                avatarInternoHTML = `<img src="http://localhost:3000/${u.FotoPerfil}" style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border-color);">`;
+                avatarInternoHTML = `<img src="https://api.aspv.com.mx/${u.FotoPerfil}" style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border-color);">`;
             } else {
                 const inicial = u.Nombre.charAt(0).toUpperCase();
                 avatarInternoHTML = `<div style="width: 45px; height: 45px; border-radius: 50%; background-color: var(--primary-color); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold;">${inicial}</div>`;
@@ -466,7 +466,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             // Si el usuario tiene una foto guardada
             if (usuarioInfo.FotoPerfil && usuarioInfo.FotoPerfil !== '') {
-                const urlFoto = `http://localhost:3000/${usuarioInfo.FotoPerfil}`;
+                const urlFoto = `https://api.aspv.com.mx/${usuarioInfo.FotoPerfil}`;
 
                 // Pintamos en Detalles (Derecha)
                 if (imgDetalles) { imgDetalles.src = urlFoto; imgDetalles.style.display = 'block'; inicialDetalles.style.display = 'none'; }
@@ -508,7 +508,7 @@ document.addEventListener("DOMContentLoaded", () => {
         contenedorMensajes.innerHTML = '<p style="text-align:center; color:gray; font-size: 0.85em; margin-top: 20px;">Cargando chat seguro...</p>';
 
         try {
-            const res = await fetch(`http://localhost:3000/api/chat/${miUsuarioIdGbl}/${idDestino}`);
+            const res = await fetch(`https://api.aspv.com.mx/api/chat/${miUsuarioIdGbl}/${idDestino}`);
             if (res.ok) {
                 const mensajes = await res.json();
                 contenedorMensajes.innerHTML = '';
@@ -529,7 +529,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                     let htmlArchivo = '';
                     if (msg.ArchivoRuta) {
-                        const urlCompleta = `http://localhost:3000/${msg.ArchivoRuta}`;
+                        const urlCompleta = `https://api.aspv.com.mx/${msg.ArchivoRuta}`;
                         htmlArchivo = `
                             <a href="${urlCompleta}" target="_blank" style="background: rgba(0,0,0,0.1); padding: 8px; border-radius: 8px; display: flex; align-items: center; gap: 8px; font-size: 0.85em; color: inherit; text-decoration: none; margin-bottom: 5px;">
                                 <span style="font-size: 1.5em;">📄</span>
@@ -664,7 +664,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             try {
                 // Enviamos los datos reales al backend
-                await fetch('http://localhost:3000/api/chat', {
+                await fetch('https://api.aspv.com.mx/api/chat', {
                     method: 'POST',
                     body: formData
                 });
@@ -769,7 +769,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 const ext = msg.ArchivoNombre.split('.').pop().toLowerCase();
                 const esImagen = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
                 const esVideo = ['mp4', 'mov', 'webm'].includes(ext);
-                const urlCompleta = `http://localhost:3000/${msg.ArchivoRuta}`;
+                const urlCompleta = `https://api.aspv.com.mx/${msg.ArchivoRuta}`;
                 const fechaFormat = new Date(msg.Fecha).toLocaleDateString();
 
                 if (esImagen || esVideo) {

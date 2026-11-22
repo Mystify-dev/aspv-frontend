@@ -41,7 +41,7 @@ function inicializarCalendario() {
         // Aquí le decimos que vaya a buscar los datos a tu servidor
         events: async function(info, successCallback, failureCallback) {
             try {
-                const respuesta = await fetch('http://localhost:3000/api/lista-expedientes');
+                const respuesta = await fetch('https://api.aspv.com.mx/api/lista-expedientes');
                 const expedientes = await respuesta.json();
 
                 // Mapeamos los datos de SQL para que el calendario los entienda

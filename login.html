@@ -189,7 +189,7 @@
         const password = document.getElementById('loginPassword').value;
 
         try {
-            const respuesta = await fetch('http://localhost:3000/api/login', {
+            const respuesta = await fetch('https://api.aspv.com.mx/api/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ correo, password })
@@ -218,7 +218,7 @@
 
     async function procesarAceptacion() {
         try {
-            const respuesta = await fetch('http://localhost:3000/api/aceptar-terminos', {
+            const respuesta = await fetch('https://api.aspv.com.mx/api/aceptar-terminos', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
