@@ -250,6 +250,20 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+    // Escuchar nuevos mensajes en tiempo real desde el servidor
+    socket.on('nuevoMensaje', (msg) => {
+        if (!msg) return;
+
+        cargarContactos();
+
+        if (usuarioDestinoActual !== null && usuarioDestinoActual !== undefined) {
+            const contactoActivoStr = String(usuarioDestinoActual);
+            if (String(msg.RemitenteID) === contactoActivoStr || String(msg.DestinatarioID) === contactoActivoStr) {
+                cargarHistorialPrivado(usuarioDestinoActual);
+            }
+        }
+    });
+
     // Refrescar dinámicamente el texto "hace X minutos" cada 30 segundos sin recargar
     setInterval(() => {
         Object.entries(estadosUsuarios).forEach(([userId, info]) => {
