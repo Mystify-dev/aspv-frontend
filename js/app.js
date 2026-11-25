@@ -68,13 +68,27 @@ function cambiarTexto(tamano) { document.documentElement.setAttribute('data-text
 // WEBSOCKETS (SOCKET.IO) - NOTIFICACIONES EN TIEMPO REAL
 // ==========================================
 // 1. Conectarnos al backend en el puerto 3000
-const socket = io("https://api.aspv.com.mx", { auth: { token: localStorage.getItem('token') } });
+const socket = window.socket || io("https://api.aspv.com.mx", { auth: { token: localStorage.getItem('token') } });
+window.socket = socket;
 
 socket.on("connect", () => {
     console.log("🟢 Conectado al servidor de chat de ASPV");
     // Le informamos al backend quién se conectó (usamos el ID de la sesión real)
     if (miUsuarioIdGbl) {
         socket.emit("registerUser", miUsuarioIdGbl);
+    }
+});
+
+if (socket.connected && miUsuarioIdGbl) {
+    socket.emit("registerUser", miUsuarioIdGbl);
+}
+
+socket.on('nuevaNotificacion', (noti) => {
+    const mensaje = (noti && (noti.Mensaje || noti.mensaje)) || 'Tienes una nueva alerta operativa';
+    revisarNotificaciones();
+    mostrarToast(mensaje, 'info');
+    if (window.Notification && Notification.permission === 'granted') {
+        new Notification('ASPV - Nueva Notificación', { body: mensaje });
     }
 });
 
@@ -614,6 +628,30 @@ document.addEventListener("DOMContentLoaded", () => {
     cargarDatosPerfil();
     revisarNotificaciones();
     setInterval(revisarNotificaciones, 10000);
+
+    if ('Notification' in window) {
+        const solicitarPermiso = () => {
+            if (Notification.permission === 'default') {
+                Notification.requestPermission().then((permiso) => {
+                    const btnPermiso = document.getElementById('btnPermisoNotificaciones');
+                    if (btnPermiso && permiso !== 'default') btnPermiso.remove();
+                });
+            }
+        };
+        const campana = document.getElementById('contenedorCampana');
+        if (campana) campana.addEventListener('click', solicitarPermiso);
+
+        const lista = document.getElementById('listaNotificacionesUI');
+        if (lista && lista.parentNode && Notification.permission === 'default' && !document.getElementById('btnPermisoNotificaciones')) {
+            const btn = document.createElement('button');
+            btn.id = 'btnPermisoNotificaciones';
+            btn.type = 'button';
+            btn.innerText = '🔔 Activar avisos de escritorio';
+            btn.style.cssText = 'width: 100%; padding: 8px 12px; background: var(--primary-color); color: white; border: none; cursor: pointer; font-size: 0.8em; font-weight: bold;';
+            btn.addEventListener('click', (e) => { e.stopPropagation(); solicitarPermiso(); });
+            lista.parentNode.insertBefore(btn, lista);
+        }
+    }
 });
 
 // ==========================================

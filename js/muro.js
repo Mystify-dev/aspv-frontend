@@ -420,3 +420,26 @@ document.addEventListener("DOMContentLoaded", () => {
     cargarDatosPerfil();
     cargarMuro();
 });
+
+// ==========================================
+// SOCKET.IO: NOTIFICACIONES EN TIEMPO REAL
+// ==========================================
+if (typeof io !== 'undefined') {
+    const socket = window.socket || io("https://api.aspv.com.mx", { auth: { token: localStorage.getItem('token') } });
+    window.socket = socket;
+
+    const registrarUsuarioSocket = () => {
+        const uid = localStorage.getItem('aspv_id');
+        if (uid) socket.emit("registerUser", uid);
+    };
+    socket.on("connect", registrarUsuarioSocket);
+    if (socket.connected) registrarUsuarioSocket();
+
+    socket.on('nuevaNotificacion', (noti) => {
+        const mensaje = (noti && (noti.Mensaje || noti.mensaje)) || 'Tienes una nueva alerta operativa';
+        mostrarToast(mensaje, 'info');
+        if (window.Notification && Notification.permission === 'granted') {
+            new Notification('ASPV - Nueva Notificación', { body: mensaje });
+        }
+    });
+}

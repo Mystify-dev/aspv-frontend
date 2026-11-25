@@ -47,6 +47,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // INICIALIZACIÓN DE SOCKET.IO Y ESTADO DEL USUARIO
     // ---------------------------------------------------------
     const socket = window.socket || io("https://api.aspv.com.mx", { auth: { token: localStorage.getItem('token') } });
+    window.socket = socket;
 
     let idContactoActual = null; // Para el estado (En línea/Última vez)
     let usuarioDestinoActual = null; // Para saber a quién le enviamos mensajes en la BD
@@ -261,6 +262,28 @@ document.addEventListener("DOMContentLoaded", () => {
             if (String(msg.RemitenteID) === contactoActivoStr || String(msg.DestinatarioID) === contactoActivoStr) {
                 cargarHistorialPrivado(usuarioDestinoActual);
             }
+        }
+    });
+
+    function mostrarToastNotificacion(mensaje) {
+        let container = document.getElementById('toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toast-container';
+            document.body.appendChild(container);
+        }
+        const toast = document.createElement('div');
+        toast.className = 'toast info';
+        toast.innerHTML = `<span>🔔</span> <span>${mensaje}</span>`;
+        container.appendChild(toast);
+        setTimeout(() => { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 3500);
+    }
+
+    socket.on('nuevaNotificacion', (noti) => {
+        const mensaje = (noti && (noti.Mensaje || noti.mensaje)) || 'Tienes una nueva alerta operativa';
+        mostrarToastNotificacion(mensaje);
+        if (window.Notification && Notification.permission === 'granted') {
+            new Notification('ASPV - Nueva Notificación', { body: mensaje });
         }
     });
 

@@ -138,3 +138,36 @@ function cambiarTexto(tamano) {
     document.documentElement.setAttribute('data-text', tamano);
     localStorage.setItem('aspv_texto', tamano);
 }
+
+// ==========================================
+// SOCKET.IO: NOTIFICACIONES EN TIEMPO REAL
+// ==========================================
+function mostrarToast(mensaje, tipo = 'info') {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+    const toast = document.createElement('div');
+    toast.className = `toast ${tipo}`;
+    toast.innerHTML = `<span>🔔</span> <span>${mensaje}</span>`;
+    container.appendChild(toast);
+    setTimeout(() => { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 3500);
+}
+
+if (typeof io !== 'undefined') {
+    const socket = window.socket || io("https://api.aspv.com.mx", { auth: { token: localStorage.getItem('token') } });
+    window.socket = socket;
+
+    const registrarUsuarioSocket = () => {
+        const uid = localStorage.getItem('aspv_id');
+        if (uid) socket.emit("registerUser", uid);
+    };
+    socket.on("connect", registrarUsuarioSocket);
+    if (socket.connected) registrarUsuarioSocket();
+
+    socket.on('nuevaNotificacion', (noti) => {
+        const mensaje = (noti && (noti.Mensaje || noti.mensaje)) || 'Tienes una nueva alerta operativa';
+        mostrarToast(mensaje, 'info');
+        if (window.Notification && Notification.permission === 'granted') {
+            new Notification('ASPV - Nueva Notificación', { body: mensaje });
+        }
+    });
+}
