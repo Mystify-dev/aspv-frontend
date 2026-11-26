@@ -333,6 +333,7 @@ function cargarTablaPagos() {
         const cLocal = ajObj ? (parseFloat(ajObj.CostoLocal) || 230) : 230;
         const cForaneo = ajObj ? (parseFloat(ajObj.CostoForaneo) || 230) : 230;
         const cKm = ajObj ? (parseFloat(ajObj.CostoKm) || 3) : 3;
+        const cKmInbursa = ajObj ? (parseFloat(ajObj.CostoKmInbursa) || 0) : 0;
 
         let htmlTabla = `
             <div class="bloque-ajustador detalle-expedientes-ajustador">
@@ -340,7 +341,7 @@ function cargarTablaPagos() {
                     <div>
                         <h4 style="margin: 0; color: var(--primary-color); font-size: 1.05em;">📁 Siniestros de: ${ajustador}</h4>
                         <span style="font-size: 0.75em; color: var(--text-muted);">
-                            Tarifas en BD: Local ${fmtMXN(cLocal)} | Foráneo ${fmtMXN(cForaneo)} | KM ${fmtMXN(cKm)}
+                            Tarifas en BD: Local ${fmtMXN(cLocal)} | Foráneo ${fmtMXN(cForaneo)} | KM ${fmtMXN(cKm)} | KM Inbursa ${fmtMXN(cKmInbursa)}
                         </span>
                     </div>
                     <div class="resumen-nomina-bar">
@@ -357,7 +358,8 @@ function cargarTablaPagos() {
                         <th style="padding: 12px 10px;">ID Siniestro</th>
                         <th style="padding: 12px 10px;">Lugar</th>
                         <th style="padding: 12px 10px;">Cobertura</th>
-                        <th style="padding: 12px 10px;">Seguro y KM</th>
+                        <th style="padding: 12px 10px;">KM</th>
+                        <th style="padding: 12px 10px;">KM Inbursa</th>
                         <th style="padding: 12px 10px;">Estado</th>
                         <th style="padding: 12px 10px;">Comisión</th>
                         <th style="padding: 12px 10px;">Auditoría</th>
@@ -376,7 +378,14 @@ function cargarTablaPagos() {
                 ? `<strong style="color: #2ecc71;">${fmtMXN(pagoSiniestro)}</strong>`
                 : `<span style="color: var(--text-muted); font-size: 0.85em;">Pendiente</span>`;
 
-            const txtKm = parseFloat(exp.Kilometros) > 0 ? `(${exp.Kilometros} km)` : '';
+            const esInbursa = (exp.Seguro || '').toLowerCase().includes('inbursa');
+            const kmNum = parseFloat(exp.Kilometros) || 0;
+            const colKm = !esInbursa
+                ? `<span style="color: ${kmNum > 0 ? 'var(--primary-color)' : 'var(--text-muted)'}; font-weight: ${kmNum > 0 ? 'bold' : 'normal'};">${exp.Kilometros || 0} km</span>`
+                : `<span style="color: var(--text-muted);">0 km</span>`;
+            const colKmInbursa = esInbursa
+                ? `<span style="color: ${kmNum > 0 ? 'var(--primary-color)' : 'var(--text-muted)'}; font-weight: ${kmNum > 0 ? 'bold' : 'normal'};">${exp.Kilometros || 0} km</span>`
+                : `<span style="color: var(--text-muted);">0 km</span>`;
 
             htmlTabla += `
                 <tr style="border-bottom: 1px solid var(--border-color); transition: background 0.3s;">
@@ -386,9 +395,10 @@ function cargarTablaPagos() {
                     </td>
                     <td style="padding: 12px 10px;">${exp.Lugar || 'N/A'}</td>
                     <td style="padding: 12px 10px;">${exp.TipoCobertura || 'Local'}</td>
-                    <td style="padding: 12px 10px;">${exp.Seguro || 'N/A'} <span style="color: var(--primary-color); font-weight: bold;">${txtKm}</span></td>
+                    <td style="padding: 12px 10px;">${colKm}</td>
+                    <td style="padding: 12px 10px;">${colKmInbursa}</td>
                     <td style="padding: 12px 10px;">
-                        <span style="background-color: ${colorEstado}20; color: ${colorEstado}; padding: 3px 10px; border-radius: 12px; font-size: 0.85em; font-weight: bold;">
+                        <span class="badge-estado-pago" style="background-color: ${colorEstado}20; color: ${colorEstado}; padding: 3px 10px; border-radius: 12px; font-size: 0.85em; font-weight: bold;">
                             ${exp.Estado}
                         </span>
                     </td>
@@ -616,7 +626,7 @@ function filtrarCajasVisuales() {
 
         for (let i = 1; i < filas.length; i++) {
             const textoFila = filas[i].textContent || filas[i].innerText;
-            const columnaEstado = filas[i].getElementsByTagName("span")[1] || filas[i].getElementsByTagName("span")[0];
+            const columnaEstado = filas[i].querySelector(".badge-estado-pago") || filas[i].getElementsByTagName("span")[0];
             const textoEstado = columnaEstado ? columnaEstado.textContent.toLowerCase() : "";
 
             if (textoFila.toLowerCase().indexOf(textoBuscador) > -1 && (estadoSeleccionado === "" || textoEstado.indexOf(estadoSeleccionado) > -1)) {
