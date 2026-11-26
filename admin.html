@@ -32,7 +32,7 @@
             const rolActual = localStorage.getItem('aspv_rol');
             mostrarMenu('btnMuro');
 
-            if (rolActual === 'Admin') {
+            if (rolActual === 'SuperAdmin' || rolActual === 'Admin') {
                 mostrarMenu('btnAdmin');
                 mostrarMenu('btnAnalista');
                 mostrarMenu('btnPagos');
@@ -165,12 +165,18 @@
                             <option value="Ajustador">Ajustador de Siniestros (App)</option>
                             <option value="Analista">Analista de Siniestros (Auditoría)</option>
                         </optgroup>
-                        <optgroup label="Personal Administrativo y Fijo">
+                        <optgroup label="Personal Administrativo y Gerencia">
                             <option value="Analista de Pagos">Administración / Pagos (Acceso a Nómina)</option>
-                            <option value="Admin">Gerencia / Coordinación / Sistemas (Control Total)</option>
+                            <option value="Admin">Coordinación / Admin (Acceso Total sin eliminar expedientes)</option>
+                            <option value="SuperAdmin">Gerencia General / Sistemas (Control Total + Eliminar)</option>
                         </optgroup>
                     </select>
                 </div>
+
+                <label style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer; font-size: 0.85em; color: var(--text-color);">
+                    <input type="checkbox" id="nuevoEsAjustador" style="width: 17px; height: 17px; cursor: pointer; accent-color: var(--primary-color);">
+                    <span><strong>También opera como Ajustador en campo</strong> (App móvil y comisiones)</span>
+                </label>
 
                 <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 5px;">
                     <button type="button" onclick="ocultarFormularioAlta()" style="background: transparent; color: var(--text-muted); border: 1px solid var(--border-color); padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold;">Cancelar</button>
@@ -269,14 +275,20 @@
             <label style="font-size: 0.85em; color: var(--text-muted); font-weight: bold; margin-bottom: -5px;">Rol de Acceso en el Sistema</label>
             <select id="editRol" required style="padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); font-weight: bold;">
                 <optgroup label="Personal Operativo">
-                    <option value="Ajustador">Ajustador (Comisiones)</option>
-                    <option value="Analista">Analista de Siniestros (Sueldo Fijo)</option>
+                    <option value="Ajustador">Ajustador de Siniestros (App)</option>
+                    <option value="Analista">Analista de Siniestros (Auditoría)</option>
                 </optgroup>
-                <optgroup label="Personal Administrativo y Fijo">
-                    <option value="Analista de Pagos">Administración / Pagos (Sueldo Fijo)</option>
-                    <option value="Admin">Gerencia / Coordinación / Sistemas (Admin Fijo)</option>
+                <optgroup label="Personal Administrativo y Gerencia">
+                    <option value="Analista de Pagos">Administración / Pagos (Acceso a Nómina)</option>
+                    <option value="Admin">Coordinación / Admin (Acceso Total sin eliminar expedientes)</option>
+                    <option value="SuperAdmin">Gerencia General / Sistemas (Control Total + Eliminar)</option>
                 </optgroup>
             </select>
+
+            <label style="display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer; font-size: 0.82em; color: var(--text-color); margin-top: 2px;">
+                <input type="checkbox" id="editEsAjustador" style="width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary-color);">
+                <span><strong>También opera como Ajustador en campo</strong> (App móvil y comisiones)</span>
+            </label>
 
             <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px;">
                 <button type="button" onclick="cerrarModalEditar()" style="background: transparent; color: var(--text-muted); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 5px; cursor: pointer;">Cancelar</button>
@@ -314,7 +326,7 @@
 </div>
 
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-<script src="js/admin.js?v=2"></script>
+<script src="js/admin.js?v=3"></script>
 
 </body>
 </html>

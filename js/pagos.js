@@ -21,7 +21,7 @@ function mostrarToast(mensaje, tipo = 'info') {
 const rolUsuario = localStorage.getItem('aspv_rol');
 const nombreUsuario = localStorage.getItem('aspv_nombre');
 
-if (!rolUsuario || (rolUsuario !== 'Admin' && rolUsuario !== 'Analista de Pagos')) {
+if (!rolUsuario || (rolUsuario !== 'SuperAdmin' && rolUsuario !== 'Admin' && rolUsuario !== 'Analista de Pagos')) {
     window.location.href = 'login.html';
 }
 
@@ -163,9 +163,9 @@ function cargarTablaPagos() {
         return true;
     });
 
-    // 2. Separar Personal Fijo vs Ajustadores desde la Base de Datos
-    const empleadosFijos = baseUsuarios.filter(u => u.Rol !== 'Ajustador');
-    const ajustadoresLista = baseUsuarios.filter(u => u.Rol === 'Ajustador');
+    // 2. Separar Personal Fijo vs Ajustadores desde la Base de Datos (soporte híbrido)
+    const empleadosFijos = baseUsuarios.filter(u => u.Rol !== 'Ajustador' || (parseFloat(u.SueldoMensual) || 0) > 0);
+    const ajustadoresLista = baseUsuarios.filter(u => u.Rol === 'Ajustador' || u.EsAjustador === 1 || u.EsAjustador === true);
 
     // Multiplicador: 0.5 si es 1ra o 2da Quincena, 1 si es Todo el Mes
     const multiplicadorFijo = (quincenaSeleccionada === 'Todas') ? 1 : 0.5;
@@ -435,13 +435,12 @@ function abrirModalNomina(usuarioId) {
     document.getElementById('nominaCostoKm').value = parseFloat(u.CostoKm) || 0;
     document.getElementById('nominaCostoKmInbursa').value = parseFloat(u.CostoKmInbursa) || 0;
 
-    if (u.Rol === 'Ajustador') {
-        document.getElementById('bloqueCamposFijo').style.display = 'none';
-        document.getElementById('bloqueCamposAjustador').style.display = 'flex';
-    } else {
-        document.getElementById('bloqueCamposFijo').style.display = 'flex';
-        document.getElementById('bloqueCamposAjustador').style.display = 'none';
-    }
+    const esAjustadorHibrido = u.EsAjustador === 1 || u.EsAjustador === true;
+    const mostrarFijo = u.Rol !== 'Ajustador' || (parseFloat(u.SueldoMensual) || 0) > 0;
+    const mostrarAjustador = u.Rol === 'Ajustador' || esAjustadorHibrido;
+
+    document.getElementById('bloqueCamposFijo').style.display = mostrarFijo ? 'flex' : 'none';
+    document.getElementById('bloqueCamposAjustador').style.display = mostrarAjustador ? 'flex' : 'none';
 
     document.getElementById('modalEditarNomina').style.display = 'flex';
 }

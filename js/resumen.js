@@ -18,7 +18,7 @@ function mostrarToast(mensaje, tipo = 'info') {
 const rolUsuario = localStorage.getItem('aspv_rol');
 const nombreUsuario = localStorage.getItem('aspv_nombre');
 
-if (!rolUsuario || (rolUsuario !== 'Admin' && rolUsuario !== 'Analista')) {
+if (!rolUsuario || (rolUsuario !== 'SuperAdmin' && rolUsuario !== 'Admin' && rolUsuario !== 'Analista')) {
     window.location.href = 'login.html';
 }
 
@@ -153,10 +153,11 @@ async function cargarTablaAdmin() {
                                 </span>
                             </td>
                             <td style="padding: 12px 10px; color: #2ecc71; font-weight: bold;">${monto}</td>
-                            <td style="padding: 12px 10px;">
+                            <td style="padding: 12px 10px; white-space: nowrap;">
                                 <button onclick="folioVisualResumen = ${folioPersonal}; evaluarExpediente(${exp.AjusteID})" style="background: var(--primary-color); color: white; border: none; padding: 6px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.85em;">
                                     Revisar y Cerrar
                                 </button>
+                                ${rolUsuario === 'SuperAdmin' ? `<button onclick="preguntarAccion(${exp.AjusteID}, 'SIN-${folioPersonal.toString().padStart(3, '0')}', 'eliminarExpediente')" style="background: #e74c3c; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.85em; margin-left: 6px;">🗑️ Eliminar</button>` : ''}
                             </td>
                         </tr>
                     `;
@@ -499,7 +500,14 @@ let datoExtra = null;
 
 function preguntarAccion(id, dato, tipoAccion) {
     accionPendiente = tipoAccion; idObjetivo = id; datoExtra = dato;
-    document.getElementById('textoConfirmacion').innerText = `¿Estás seguro de que quieres rechazar el documento ${dato}? El Ajustador tendrá que subirlo obligatoriamente.`;
+    const btnConfirmar = document.getElementById('btnConfirmarAccion');
+    if (tipoAccion === 'eliminarExpediente') {
+        document.getElementById('textoConfirmacion').innerText = `¿Estás seguro de que deseas eliminar permanentemente el expediente ${dato} y todos sus archivos? Esta acción no se puede deshacer.`;
+        if (btnConfirmar) btnConfirmar.innerText = 'Sí, eliminar';
+    } else {
+        document.getElementById('textoConfirmacion').innerText = `¿Estás seguro de que quieres rechazar el documento ${dato}? El Ajustador tendrá que subirlo obligatoriamente.`;
+        if (btnConfirmar) btnConfirmar.innerText = 'Sí, Confirmar';
+    }
     document.getElementById('modalConfirmacion').style.display = 'flex';
 }
 
@@ -521,6 +529,21 @@ async function confirmarAccion() {
                 revisarNotificaciones();
             }
         } catch(error) { console.error("Error rechazando doc:", error); }
+    } else if (accionPendiente === 'eliminarExpediente') {
+        try {
+            const res = await authFetch(`https://api.aspv.com.mx/api/ajustes/${idObjetivo}`, { method: 'DELETE' });
+            if (res.ok) {
+                mostrarToast(`✅ Expediente ${datoExtra} eliminado permanentemente.`, "success");
+                cargarTablaAdmin();
+                cargarDashboardAdmin();
+            } else {
+                const err = await res.json().catch(() => ({}));
+                mostrarToast(`❌ Error al eliminar: ${err.error || 'Sin permisos o fallo del servidor.'}`, "error");
+            }
+        } catch (error) {
+            console.error("Error eliminando expediente:", error);
+            mostrarToast("❌ Error de conexión al eliminar el expediente.", "error");
+        }
     }
 }
 

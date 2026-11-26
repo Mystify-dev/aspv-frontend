@@ -477,7 +477,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (btnVolverInicio) {
         btnVolverInicio.addEventListener('click', () => {
             const rol = localStorage.getItem('aspv_rol');
-            if (rol === 'Admin') window.location.href = 'admin.html';
+            if (rol === 'SuperAdmin' || rol === 'Admin') window.location.href = 'admin.html';
             else if (rol === 'Analista') window.location.href = 'resumen.html';
             else if (rol === 'Analista de Pagos') window.location.href = 'pagos.html';
             else window.location.href = 'index.html';

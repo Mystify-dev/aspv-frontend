@@ -38,7 +38,7 @@
             mostrarMenu('btnMuro');
 
             // Lógica de permisos por rol
-            if (rolActual === 'Admin') {
+            if (rolActual === 'SuperAdmin' || rolActual === 'Admin') {
                 mostrarMenu('btnAdmin');
                 mostrarMenu('btnAnalista');
                 mostrarMenu('btnPagos');
@@ -237,7 +237,7 @@
         <p style="color: var(--text-color); font-size: 0.9em;" id="textoConfirmacion"></p>
         <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
             <button onclick="cancelarAccion()" style="background: var(--bg-color); color: var(--text-color); border: 1px solid var(--border-color); padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold;">Cancelar</button>
-            <button onclick="confirmarAccion()" style="background: #e74c3c; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold;">Sí, Confirmar</button>
+            <button id="btnConfirmarAccion" onclick="confirmarAccion()" style="background: #e74c3c; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold;">Sí, Confirmar</button>
         </div>
     </div>
 </div>
@@ -278,7 +278,7 @@
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 
 <!-- Cargar tu resumen.js DESPUÉS para que ya pueda usar Socket.io -->
-<script src="js/resumen.js?v=2"></script>
+<script src="js/resumen.js?v=3"></script>
 
 </body>
 </html>

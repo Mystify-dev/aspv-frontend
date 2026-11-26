@@ -38,7 +38,7 @@
             mostrarMenu('btnMuro');
 
             // Lógica de permisos por rol
-            if (rolActual === 'Admin') {
+            if (rolActual === 'SuperAdmin' || rolActual === 'Admin') {
                 mostrarMenu('btnAdmin');
                 mostrarMenu('btnAnalista');
                 mostrarMenu('btnPagos');

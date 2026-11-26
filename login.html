@@ -258,7 +258,7 @@
         localStorage.setItem('aspv_rol', usuario.Rol);
 
         // Enrutamiento en base al rol
-        if (usuario.Rol === 'Admin') window.location.href = 'admin.html';
+        if (usuario.Rol === 'SuperAdmin' || usuario.Rol === 'Admin') window.location.href = 'admin.html';
         else if (usuario.Rol === 'Ajustador') window.location.href = 'index.html';
         else if (usuario.Rol === 'Analista') window.location.href = 'resumen.html';
         else if (usuario.Rol === 'Analista de Pagos') window.location.href = 'pagos.html';

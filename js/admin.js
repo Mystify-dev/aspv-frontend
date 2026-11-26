@@ -19,7 +19,7 @@ const rolUsuario = localStorage.getItem('aspv_rol');
 const nombreUsuario = localStorage.getItem('aspv_nombre');
 const miUsuarioIdGbl = localStorage.getItem('aspv_id');
 
-if (!rolUsuario || (rolUsuario !== 'Admin' && rolUsuario !== 'Analista')) {
+if (!rolUsuario || (rolUsuario !== 'SuperAdmin' && rolUsuario !== 'Admin' && rolUsuario !== 'Analista')) {
     window.location.href = 'login.html';
 }
 
@@ -92,7 +92,7 @@ async function cargarPersonal() {
 
             // ACTUALIZAR KPIs DE PERSONAL
             document.getElementById('kpiTotal').innerText = cacheUsuariosAdmin.length;
-            document.getElementById('kpiAjustadores').innerText = cacheUsuariosAdmin.filter(u => u.Rol === 'Ajustador').length;
+            document.getElementById('kpiAjustadores').innerText = cacheUsuariosAdmin.filter(u => u.Rol === 'Ajustador' || u.EsAjustador === 1 || u.EsAjustador === true).length;
             document.getElementById('kpiAdmin').innerText = cacheUsuariosAdmin.filter(u => u.Rol !== 'Ajustador').length;
             document.getElementById('kpiOnline').innerText = cacheUsuariosAdmin.filter(u => u.Estado === 'online').length;
 
@@ -101,7 +101,10 @@ async function cargarPersonal() {
             tablaDirectorio.innerHTML = '';
 
             cacheUsuariosAdmin.forEach(u => {
-                let colorRol = u.Rol === 'Admin' ? '#e74c3c' : (u.Rol === 'Analista' ? '#f39c12' : '#3498db');
+                let colorRol = u.Rol === 'SuperAdmin' ? '#8e44ad' : (u.Rol === 'Admin' ? '#e74c3c' : (u.Rol === 'Analista' ? '#f39c12' : '#3498db'));
+                const badgeHibrido = (u.Rol !== 'Ajustador' && (u.EsAjustador === 1 || u.EsAjustador === true))
+                    ? '<br><span style="font-size: 0.75em; color: #2ecc71; font-weight: bold;">+ Ajustador</span>'
+                    : '';
                 const puestoTxt = u.Puesto || u.Rol;
                 const ciudadTxt = u.Ciudad || 'MÉRIDA';
 
@@ -121,7 +124,7 @@ async function cargarPersonal() {
                         <td style="padding: 12px 10px; color: var(--text-muted);">${puestoTxt.toUpperCase()}</td>
                         <td style="padding: 12px 10px;">${ciudadTxt.toUpperCase()}</td>
                         <td style="padding: 12px 10px; color: var(--primary-color);">${u.Correo}</td>
-                        <td style="padding: 12px 10px;"><span style="color: ${colorRol}; font-weight: bold;">${u.Rol}</span></td>
+                        <td style="padding: 12px 10px;"><span style="color: ${colorRol}; font-weight: bold;">${u.Rol}</span>${badgeHibrido}</td>
                         <td style="padding: 12px 10px;" id="estado-user-${u.UsuarioID}">${estadoTexto}</td>
                         <td style="padding: 12px 10px; text-align: center;">
                             <button onclick="abrirModalEditar(${u.UsuarioID})" style="background: transparent; color: #f39c12; border: 1px solid #f39c12; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 0.85em; font-weight: bold; margin-right: 5px;">✏️ Editar</button>
@@ -145,7 +148,8 @@ if (formNuevoUsuario) {
             ciudad: document.getElementById('nuevaCiudad').value.trim(),
             correo: document.getElementById('nuevoCorreo').value.trim(),
             password: document.getElementById('nuevoPassword').value,
-            rol: document.getElementById('nuevoRol').value
+            rol: document.getElementById('nuevoRol').value,
+            esAjustador: document.getElementById('nuevoEsAjustador') ? document.getElementById('nuevoEsAjustador').checked : false
         };
 
         try {
@@ -181,6 +185,8 @@ function abrirModalEditar(id) {
     document.getElementById('editCiudad').value = u.Ciudad || 'MÉRIDA';
     document.getElementById('editCorreo').value = u.Correo || '';
     document.getElementById('editRol').value = u.Rol || 'Ajustador';
+    const checkEditAj = document.getElementById('editEsAjustador');
+    if (checkEditAj) checkEditAj.checked = Boolean(u.EsAjustador);
     document.getElementById('editPassword').value = '';
 
     document.getElementById('modalEditarUsuario').style.display = 'flex';
@@ -202,7 +208,8 @@ if (formEditarUsuario) {
             ciudad: document.getElementById('editCiudad').value.trim(),
             correo: document.getElementById('editCorreo').value.trim(),
             password: document.getElementById('editPassword').value,
-            rol: document.getElementById('editRol').value
+            rol: document.getElementById('editRol').value,
+            esAjustador: document.getElementById('editEsAjustador') ? document.getElementById('editEsAjustador').checked : false
         };
 
         try {

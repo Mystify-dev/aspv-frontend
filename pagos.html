@@ -32,7 +32,7 @@
             const rolActual = localStorage.getItem('aspv_rol');
             mostrarMenu('btnMuro');
 
-            if (rolActual === 'Admin') {
+            if (rolActual === 'SuperAdmin' || rolActual === 'Admin') {
                 mostrarMenu('btnAdmin');
                 mostrarMenu('btnAnalista');
                 mostrarMenu('btnPagos');
@@ -249,7 +249,7 @@
 </div>
 
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-<script src="js/pagos.js?v=3"></script>
+<script src="js/pagos.js?v=4"></script>
 
 </body>
 </html>
